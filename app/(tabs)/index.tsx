@@ -5,6 +5,7 @@ import { ActivityIndicator, Alert, Animated, FlatList, Image, Modal, Platform, S
 import AppMap from '../../components/AppMap';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '@/lib/supabase';
 
 // --- OVERPASS API (OpenStreetMap) ---
 const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -338,13 +339,28 @@ export default function App() {
     showNotification("Ödeme Alındı! ✅");
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!loginUsername.trim() || !loginPassword.trim()) { Alert.alert("Hata", "Lütfen tüm alanları doldurun."); return; }
-    const found = registeredUsers.find(u => u.username.toLowerCase() === loginUsername.toLowerCase() && u.password === loginPassword);
-    if (!found) { Alert.alert("Hata", "Kullanıcı adı veya şifre hatalı."); return; }
+    
+    // Supabase Kimlik Doğrulama
+    const fakeEmail = loginUsername.toLowerCase().replace(/\s/g, '') + '@hopop.com';
+    const { error } = await supabase.auth.signInWithPassword({
+      email: fakeEmail,
+      password: loginPassword
+    });
+
+    if (error) { 
+      Alert.alert("Hata", "Kullanıcı adı veya şifre hatalı."); 
+      return; 
+    }
+
+    // Eski lokal state güncellemeleri
+    const found = registeredUsers.find(u => u.username.toLowerCase() === loginUsername.toLowerCase()) || {
+      name: loginUsername, username: loginUsername, password: loginPassword, role: 'customer', avatar: 'https://picsum.photos/id/64/200', balance: 500, experiences: [], appointments: []
+    };
     
     setCurrentUsername(found.username);
-    setUserRole(found.role);
+    setUserRole(found.role as any);
     setUser({ name: found.name, username: found.username, balance: found.balance, avatar: found.avatar });
     setUserExperiences(found.experiences || []);
     setAppointments(found.appointments || []);
@@ -362,12 +378,31 @@ export default function App() {
     showNotification(`Hoş geldin, ${found.name}! 👋`);
   };
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!regName.trim() || !regUsername.trim() || !regPassword.trim()) { Alert.alert("Hata", "Lütfen tüm alanları doldurun."); return; }
     if (regRole === 'owner' && !regShopName.trim()) { Alert.alert("Hata", "İşletme adı zorunludur."); return; }
     if (registeredUsers.find(u => u.username.toLowerCase() === regUsername.toLowerCase())) { Alert.alert("Hata", "Bu kullanıcı adı zaten kullanılıyor."); return; }
-    if (regPassword.length < 4) { Alert.alert("Hata", "Şifre en az 4 karakter olmalıdır."); return; }
+    if (regPassword.length < 6) { Alert.alert("Hata", "Şifre en az 6 karakter olmalıdır."); return; } // Supabase requires min 6 chars
     
+    // Supabase Kayıt İşlemi
+    const fakeEmail = regUsername.toLowerCase().replace(/\s/g, '') + '@hopop.com';
+    const { data, error } = await supabase.auth.signUp({
+      email: fakeEmail,
+      password: regPassword,
+    });
+
+    if (error) {
+      Alert.alert("Hata", error.message);
+      return;
+    }
+
+    if (data.user) {
+      await supabase.from('profiles').update({ 
+        full_name: regName, 
+        role: regRole === 'owner' ? 'admin' : 'customer' 
+      }).eq('id', data.user.id);
+    }
+
     const newUser: RegisteredUser = {
       name: regName, username: regUsername, password: regPassword, role: regRole,
       shopName: regRole === 'owner' ? regShopName : undefined,
@@ -454,7 +489,7 @@ export default function App() {
 
           <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Ad Soyad" value={regName} onChangeText={setRegName} />
           <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Kullanıcı Adı" value={regUsername} onChangeText={setRegUsername} autoCapitalize="none" />
-          <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Şifre (en az 4 karakter)" value={regPassword} onChangeText={setRegPassword} secureTextEntry />
+          <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Şifre (en az 6 karakter)" value={regPassword} onChangeText={setRegPassword} secureTextEntry />
           {regRole === 'owner' && <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="İşletme / Dükkan Adı" value={regShopName} onChangeText={setRegShopName} />}
 
           <TouchableOpacity style={styles.authPrimaryBtn} onPress={handleRegister}><Text style={styles.authPrimaryBtnText}>KAYIT OL</Text></TouchableOpacity>
