@@ -133,12 +133,37 @@ const detectCategory = (tags: any): 'berber' | 'tırnak' | 'güzellik' | 'kuafö
 };
 
 // --- TİPLER ---
-interface Appointment { id: string; shopId: string; barberName: string; date: string; time: string; price: number; type: string; status: 'active' | 'past'; customerName?: string; }
+interface Appointment {
+  id: string;
+  shopId: string;
+  barberName: string;
+  date: string;
+  time: string;
+  price: number;
+  type: string;
+  customerName?: string;
+  status: 'active' | 'past' | 'pending' | 'confirmed' | 'cancelled';
+}
+
 interface Barber {
-  id: string; name: string; latitude: number; longitude: number; rating: number;
-  type: 'berber' | 'tırnak' | 'güzellik' | 'kuaför'; imageUrl: string;
-  isPromoted?: boolean; views: number; reviews: Review[];
-  address?: string; phone?: string; openingHours?: string; website?: string; description?: string; distance?: number;
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  rating: number;
+  type: string;
+  category?: string;
+  imageUrl: string;
+  views: number;
+  reviews: Review[];
+  distance?: number;
+  address?: string;
+  description?: string;
+  working_hours?: string[];
+  isPromoted?: boolean;
+  phone?: string;
+  openingHours?: string;
+  website?: string;
 }
 
 interface RegisteredUser {
@@ -335,6 +360,7 @@ export default function App() {
           reviews: globalReviews[shop.id] || [],
           address: shop.address || '',
           description: shop.description || '',
+          working_hours: shop.working_hours,
           distance: calculateDistance(location.coords.latitude, location.coords.longitude, shop.latitude, shop.longitude)
         }));
         
@@ -356,21 +382,58 @@ export default function App() {
     setTimeout(() => { Animated.timing(slideAnim, { toValue: -100, duration: 500, useNativeDriver: true }).start(); }, 3000);
   };
 
-  const handlePayment = () => {
+  const handleConfirmAppointment = async (id: string) => {
+    const { error } = await supabase.from('appointments').update({ status: 'confirmed' }).eq('id', id);
+    if (error) { Alert.alert("Hata", error.message); return; }
+    
+    setAppointments(appointments.map(a => a.id === id ? { ...a, status: 'confirmed' } : a));
+    Alert.alert("Hopop", "Dükkana gideceğinizi bildirdik! ✅ İşletme ekranına düştü.");
+  };
+
+  const handlePayment = async () => {
     if (!selectedTime) { Alert.alert("Hata", "Lütfen saat seçiniz."); return; }
     if (user.balance < 350) { Alert.alert("Hata", "Yetersiz bakiye."); return; }
     
-    const newBalance = user.balance - 350;
-    const newApps = [{ id: Math.random().toString(), shopId: selectedBarber!.id, barberName: selectedBarber!.name, date: selectedDate, time: selectedTime, price: 350, type: selectedBarber!.type, status: 'active' as const }, ...appointments];
+    // Parse time and create a Date object for today
+    const appDate = new Date();
+    const [hours, mins] = selectedTime.split(':');
+    appDate.setHours(parseInt(hours), parseInt(mins), 0);
+
+    const { data: newApp, error } = await supabase.from('appointments').insert({
+      shop_id: selectedBarber!.id,
+      user_id: user.id,
+      appointment_date: appDate.toISOString(),
+      status: 'pending',
+      price: 350
+    }).select('*, shops(name, category)').single();
+
+    if (error) {
+      Alert.alert("Hata", "Randevu oluşturulamadı: " + error.message);
+      return;
+    }
     
+    const newBalance = user.balance - 350;
     setUser(prev => ({ ...prev, balance: newBalance }));
-    setAppointments(newApps);
-    if(currentUsername) updateUserInDb(currentUsername, { balance: newBalance, appointments: newApps });
+    
+    // Format to match local UI state temporarily until full fetch
+    const localApp = { 
+      id: newApp.id, 
+      shopId: selectedBarber!.id, 
+      barberName: selectedBarber!.name, 
+      date: 'Bugün', 
+      time: selectedTime, 
+      price: 350, 
+      type: selectedBarber!.category || 'berber', 
+      status: 'pending' as const 
+    };
+    
+    setAppointments([localApp, ...appointments]);
+    if(currentUsername) updateUserInDb(currentUsername, { balance: newBalance });
 
     setSelectedBarber(null);
     setSelectedTime(null);
     setActiveTab('appointments');
-    showNotification("Ödeme Alındı! ✅");
+    showNotification("Ödeme Alındı! Randevularım kısmından onaylayın ✅");
   };
 
   const handleLogin = async () => {
@@ -432,11 +495,32 @@ export default function App() {
       shopName: undefined
     };
     
+    // Fetch real appointments
+    let fetchedApps: any[] = [];
+    if (frontendRole === 'customer') {
+      const { data: cApps } = await supabase.from('appointments').select('*, shops(name, category)').eq('user_id', profile.id).order('created_at', { ascending: false });
+      fetchedApps = (cApps || []).map(a => ({
+         id: a.id, shopId: a.shop_id, barberName: a.shops?.name,
+         date: new Date(a.appointment_date).toLocaleDateString(),
+         time: new Date(a.appointment_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+         price: a.price, type: a.shops?.category, status: a.status
+      }));
+    } else if (frontendRole === 'owner' && ownerShopDb) {
+      const { data: oApps } = await supabase.from('appointments').select('*, profiles(full_name)').eq('shop_id', ownerShopDb.id).order('created_at', { ascending: false });
+      setOwnerAppointments((oApps || []).map((a: any) => ({
+         id: a.id, shopId: a.shop_id, barberName: ownerShopDb.name,
+         customerName: a.profiles?.full_name || 'Müşteri',
+         date: new Date(a.appointment_date).toLocaleDateString(),
+         time: new Date(a.appointment_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+         price: a.price, type: ownerShopDb.category, status: a.status
+      })));
+    }
+    
     setCurrentUsername(found.username);
     setUserRole(frontendRole as any);
     setUser({ id: profile.id, name: found.name, username: found.username, balance: found.balance, avatar: found.avatar });
     setUserExperiences(found.experiences || []);
-    setAppointments(found.appointments || []);
+    setAppointments(fetchedApps);
     setEditProfileData({ id: profile.id, name: found.name, username: found.username, balance: found.balance, avatar: found.avatar });
     
       setAuthState('loggedIn');
@@ -725,16 +809,26 @@ export default function App() {
 
           {activeTab === 'appointments' && (
             <View style={styles.tabPadding}><Text style={styles.tabTitle}>AKTİF RANDEVULARIM</Text>
-              <FlatList data={appointments.filter(a => a.status === 'active')} keyExtractor={item => item.id} renderItem={({ item }) => (
+              <FlatList data={appointments.filter(a => a.status === 'pending' || a.status === 'confirmed')} keyExtractor={item => item.id} renderItem={({ item }) => (
                 <View style={styles.appCard}>
                   <View style={{ flex: 1 }}><Text style={styles.appShopName}>{item.barberName}</Text><Text style={styles.appDate}>{item.date} | {item.time}</Text></View>
                   <View style={{ flexDirection: 'row' }}>
-                    <TouchableOpacity style={styles.actionBtn} onPress={() => Alert.alert("Hopop", `${item.barberName} dükkanına gideceğinizi bildirdik! ✅`)}><Text style={styles.actionBtnText}>GİDECEĞİM</Text></TouchableOpacity>
-                    <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#ff4757' }]} onPress={() => { 
+                    {item.status === 'pending' && (
+                      <TouchableOpacity style={styles.actionBtn} onPress={() => handleConfirmAppointment(item.id)}>
+                        <Text style={styles.actionBtnText}>GİDECEĞİM</Text>
+                      </TouchableOpacity>
+                    )}
+                    {item.status === 'confirmed' && (
+                      <Text style={{color:'#2ed573', fontWeight:'bold', marginRight:10, alignSelf:'center'}}>ONAYLI ✅</Text>
+                    )}
+                    <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#ff4757' }]} onPress={async () => { 
+                      const { error } = await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', item.id);
+                      if (error) { Alert.alert("Hata", error.message); return; }
+                      
                       const newApps = appointments.filter(a => a.id !== item.id);
                       setAppointments(newApps); 
                       setUser({ ...user, balance: user.balance + 350 }); 
-                      if(currentUsername) updateUserInDb(currentUsername, { balance: user.balance + 350, appointments: newApps });
+                      if(currentUsername) updateUserInDb(currentUsername, { balance: user.balance + 350 });
                       showNotification("Ücret iade edildi."); 
                     }}><Text style={styles.actionBtnText}>İPTAL</Text></TouchableOpacity>
                   </View>
@@ -844,13 +938,56 @@ export default function App() {
               </View>
 
               <View style={styles.ownerSectionHead}>
-                <Text style={styles.sectionTitle}>RANDEVULAR</Text>
+                <Text style={styles.sectionTitle}>MAĞAZA AYARLARI</Text>
+              </View>
+              <View style={{ backgroundColor: '#f9f9f9', padding: 20, borderRadius: 15, marginBottom: 25 }}>
+                <TouchableOpacity style={styles.expImagePicker} onPress={() => pickImage(async (uri) => {
+                   const { error } = await supabase.from('shops').update({ image_url: uri }).eq('id', ownerShopDb.id);
+                   if (!error) { setOwnerShopDb({...ownerShopDb, image_url: uri}); showNotification("Mağaza fotoğrafı güncellendi!"); }
+                }, [16, 9])}>
+                  {ownerShopDb.image_url ? (
+                    <Image source={{uri: ownerShopDb.image_url}} style={{ width: '100%', height: 150, borderRadius: 12 }} />
+                  ) : (
+                    <View style={styles.expPickerPlaceholder}>
+                      <Ionicons name="image-outline" size={40} color="#ccc" />
+                      <Text style={{color:'#aaa', fontSize:12, marginTop:8}}>Mağaza Vitrin Fotoğrafı Ekle</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+                <Text style={{ fontWeight:'bold', marginBottom:10 }}>Çalışma Saatleri (Müşterilerin Seçebileceği Saatler)</Text>
+                <View style={{flexDirection:'row', flexWrap:'wrap', gap:10}}>
+                   {["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"].map(t => {
+                      const isActive = (ownerShopDb.working_hours || ["09:00", "11:00", "13:00", "15:00", "17:00"]).includes(t);
+                      return (
+                        <TouchableOpacity key={t} style={[styles.slot, isActive && styles.selected, {minWidth:70, padding:10, marginBottom: 5}]} onPress={async () => {
+                           const currentHours = ownerShopDb.working_hours || ["09:00", "11:00", "13:00", "15:00", "17:00"];
+                           const newHours = isActive ? currentHours.filter((h:string) => h !== t) : [...currentHours, t].sort();
+                           const { error } = await supabase.from('shops').update({ working_hours: newHours }).eq('id', ownerShopDb.id);
+                           if (!error) { setOwnerShopDb({...ownerShopDb, working_hours: newHours}); showNotification("Saatler kaydedildi."); }
+                        }}>
+                          <Text style={[styles.slotText, isActive && { color: '#fff' }]}>{t}</Text>
+                        </TouchableOpacity>
+                      )
+                   })}
+                </View>
+              </View>
+
+              <View style={styles.ownerSectionHead}>
+                <Text style={styles.sectionTitle}>GELEN RANDEVULAR</Text>
                 <TouchableOpacity onPress={() => setShowManualAddModal(true)}><Text style={styles.addManualText}>+ ELLE EKLE</Text></TouchableOpacity>
               </View>
-              <FlatList data={ownerAppointments} keyExtractor={item => item.id} renderItem={({ item }) => (
-                <View style={styles.ownerAppCard}><View><Text style={{ fontWeight: 'bold' }}>{item.customerName}</Text><Text style={{ color: '#aaa', fontSize: 12 }}>{item.time}</Text></View><Ionicons name="checkmark-circle" size={20} color="#2ed573" /></View>
-              )} />
-              <TouchableOpacity style={styles.logoutBtn} onPress={() => { setCurrentUsername(null); setAuthState('login'); }}><Text style={{ color: '#aaa' }}>Panelden Çıkış</Text></TouchableOpacity>
+              <FlatList data={ownerAppointments.filter(a => a.status === 'pending' || a.status === 'confirmed')} keyExtractor={item => item.id} renderItem={({ item }) => (
+                <View style={styles.ownerAppCard}>
+                  <View>
+                    <Text style={{ fontWeight: 'bold' }}>{item.customerName}</Text>
+                    <Text style={{ color: '#aaa', fontSize: 12 }}>{item.date} • {item.time}</Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                     {item.status === 'confirmed' ? <Ionicons name="checkmark-circle" size={24} color="#2ed573" /> : <Text style={{color:'#f39c12', fontWeight:'bold', fontSize:12}}>BEKLİYOR (Ödendi)</Text>}
+                  </View>
+                </View>
+              )} ListEmptyComponent={<Text style={{ color: '#aaa', textAlign: 'center', marginVertical: 20 }}>Randevu yok.</Text>} />
+              <TouchableOpacity style={styles.logoutBtn} onPress={() => { setCurrentUsername(null); setAuthState('login'); }}><Text style={{ color: 'red', fontWeight:'bold', marginBottom:40 }}>Panelden Çıkış</Text></TouchableOpacity>
             </View>
           )}
         </View>
@@ -920,7 +1057,13 @@ export default function App() {
               {selectedBarber.description ? <Text style={{ color: '#555', fontSize: 13, marginTop: 10, lineHeight: 20 }}>{selectedBarber.description}</Text> : null}
 
               <Text style={styles.sectionTitle}>SAAT SEÇİN (350 TL)</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>{["09:00", "11:00", "14:00", "16:00", "18:00"].map(t => (<TouchableOpacity key={t} style={[styles.slot, selectedTime === t && styles.selected]} onPress={() => setSelectedTime(t)}><Text style={[styles.slotText, selectedTime === t && { color: '#fff' }]}>{t}</Text></TouchableOpacity>))}</ScrollView>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {(selectedBarber.working_hours || ["09:00", "11:00", "13:00", "15:00", "17:00"]).map((t: string) => (
+                  <TouchableOpacity key={t} style={[styles.slot, selectedTime === t && styles.selected]} onPress={() => setSelectedTime(t)}>
+                    <Text style={[styles.slotText, selectedTime === t && { color: '#fff' }]}>{t}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
 
               {globalReviews[selectedBarber.id] && globalReviews[selectedBarber.id].length > 0 && <><Text style={styles.sectionTitle}>YORUMLAR ({globalReviews[selectedBarber.id].length})</Text>
               {globalReviews[selectedBarber.id].map(r => (<View key={r.id} style={styles.reviewItem}><View style={{flexDirection:'row', alignItems:'center', marginBottom:8}}><Image source={{uri: r.userAvatar || 'https://picsum.photos/100'}} style={{width: 30, height: 30, borderRadius: 15, marginRight: 10}}/><View><Text style={{ fontWeight: 'bold' }}>{r.user}</Text><Text style={{color:'#f39c12', fontSize:12}}>{'⭐'.repeat(r.star)}</Text></View></View>{r.imageUrl ? <Image source={{uri: r.imageUrl}} style={{width: '100%', height: 150, borderRadius: 10, marginTop: 5, marginBottom: 10}} />: null}<Text style={{ color: '#666' }}>{r.comment}</Text></View>))}</>}
