@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
-import MapView, { Marker, MapPressEvent } from 'react-native-maps';
+import AdminMap from '@/components/AdminMap';
 import { supabase } from '@/lib/supabase';
 
 export default function AdminScreen() {
@@ -10,7 +10,7 @@ export default function AdminScreen() {
   const [selectedLocation, setSelectedLocation] = useState<{ latitude: number, longitude: number } | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleMapPress = (e: MapPressEvent) => {
+  const handleMapPress = (e: any) => {
     setSelectedLocation(e.nativeEvent.coordinate);
   };
 
@@ -51,20 +51,11 @@ export default function AdminScreen() {
       <Text style={styles.instruction}>1. Harita üzerinden dükkanın konumuna uzun basarak işaretleyin.</Text>
       
       <View style={styles.mapContainer}>
-        <MapView
+        <AdminMap
           style={styles.map}
-          initialRegion={{
-            latitude: 41.0082,
-            longitude: 28.9784, // İstanbul merkez
-            latitudeDelta: 0.0922,
-            longitudeDelta: 0.0421,
-          }}
-          onLongPress={handleMapPress}
-        >
-          {selectedLocation && (
-            <Marker coordinate={selectedLocation} title="Yeni Dükkan Konumu" />
-          )}
-        </MapView>
+          selectedLocation={selectedLocation}
+          onMapPress={handleMapPress}
+        />
       </View>
 
       <View style={styles.form}>
