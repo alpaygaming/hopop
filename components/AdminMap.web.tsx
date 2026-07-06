@@ -4,12 +4,12 @@ import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaf
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
-// Fix for default marker icons in Leaflet with webpack/nextjs
+// Fix for default marker icons using unpkg to avoid webpack require issues
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
-  iconUrl: require('leaflet/dist/images/marker-icon.png'),
-  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
 function MapEvents({ onMapPress }: { onMapPress: any }) {
@@ -23,7 +23,7 @@ function MapEvents({ onMapPress }: { onMapPress: any }) {
   return null;
 }
 
-export default function AdminMap({ style, selectedLocation, onMapPress }: any) {
+export default function AdminMap({ style, selectedLocation, onMapPress, systemShops = [] }: any) {
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
@@ -38,7 +38,7 @@ export default function AdminMap({ style, selectedLocation, onMapPress }: any) {
     <View style={style}>
       <MapContainer 
         center={[41.0082, 28.9784]} 
-        zoom={13} 
+        zoom={12} 
         style={{ height: '100%', width: '100%' }}
       >
         <TileLayer
@@ -47,10 +47,29 @@ export default function AdminMap({ style, selectedLocation, onMapPress }: any) {
         />
         <MapEvents onMapPress={onMapPress} />
         {selectedLocation && (
-          <Marker position={[selectedLocation.latitude, selectedLocation.longitude]}>
-            <Popup>Yeni Dükkan Konumu</Popup>
+          <Marker 
+            position={[selectedLocation.latitude, selectedLocation.longitude]}
+            draggable={true}
+            eventHandlers={{
+              dragend: (e) => {
+                const marker = e.target;
+                const position = marker.getLatLng();
+                if (onMapPress) onMapPress({ nativeEvent: { coordinate: { latitude: position.lat, longitude: position.lng } } });
+              }
+            }}
+          >
+            <Popup>Yeni Dükkan Konumu (Sürükleyebilirsiniz)</Popup>
           </Marker>
         )}
+        
+        {systemShops.map((shop: any) => (
+          <Marker 
+            key={shop.id} 
+            position={[shop.latitude, shop.longitude]}
+          >
+            <Popup>{shop.name}</Popup>
+          </Marker>
+        ))}
       </MapContainer>
     </View>
   );

@@ -594,8 +594,8 @@ export default function App() {
     if (!newShopLocation) { alert("Lütfen haritadan konum seçin."); return; }
     if (!newShopData.name.trim() || !newShopOwnerUsername.trim()) { alert("Lütfen dükkan adını ve sahibinin kullanıcı adını doldurun."); return; }
     
-    // Find the user ID from username
-    const { data: ownerProfile, error: profileErr } = await supabase.from('profiles').select('id').eq('username', newShopOwnerUsername).maybeSingle();
+    // Find the user ID from username case-insensitively
+    const { data: ownerProfile, error: profileErr } = await supabase.from('profiles').select('id').ilike('username', newShopOwnerUsername).maybeSingle();
     
     if (profileErr || !ownerProfile) {
       alert("Bu kullanıcı adına sahip bir hesap bulunamadı!");
@@ -1011,8 +1011,8 @@ export default function App() {
           </View>
 
           <Text style={styles.sectionTitle}>YENİ DÜKKAN EKLE</Text>
-          <View style={{ height: 250, borderRadius: 15, overflow: 'hidden', marginBottom: 15 }}>
-            <AdminMap style={{ flex: 1 }} selectedLocation={newShopLocation} onMapPress={(e: any) => setNewShopLocation(e.nativeEvent.coordinate)} />
+          <View style={{ height: 350, borderRadius: 15, overflow: 'hidden', marginBottom: 15 }}>
+            <AdminMap style={{ flex: 1 }} selectedLocation={newShopLocation} onMapPress={(e: any) => setNewShopLocation(e.nativeEvent.coordinate)} systemShops={systemShops} />
           </View>
           <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="İşletmecinin Kullanıcı Adı (Örn: emre123)" value={newShopOwnerUsername} onChangeText={setNewShopOwnerUsername} autoCapitalize="none" />
           <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Dükkan Adı" value={newShopData.name} onChangeText={(t) => setNewShopData({...newShopData, name: t})} />

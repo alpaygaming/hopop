@@ -6,9 +6,9 @@ import L from 'leaflet';
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png'),
-  iconUrl: require('leaflet/dist/images/marker-icon.png'),
-  shadowUrl: require('leaflet/dist/images/marker-shadow.png'),
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
 });
 
 function MapEvents({ onMoveEnd }: { onMoveEnd: any }) {
@@ -48,26 +48,29 @@ export default function AppMap({ location, dynamicBarbers, setSelectedBarber, ma
         />
         <MapEvents onMoveEnd={(bounds: any) => console.log('Map moved', bounds)} />
         
-        {dynamicBarbers && dynamicBarbers.map((barber: any) => (
-          <Marker 
-            key={barber.id} 
-            position={[barber.latitude, barber.longitude]}
-          >
-            <Popup>
-              <div style={{ textAlign: 'center' }}>
-                <b style={{ fontSize: '14px' }}>{barber.name}</b><br/>
-                <span style={{ color: '#666' }}>{barber.type.toUpperCase()}</span><br/>
-                <span style={{ color: '#f39c12' }}>⭐ {barber.rating.toFixed(1)}</span><br/>
-                <button 
-                  onClick={() => setSelectedBarber(barber)}
-                  style={{ marginTop: '10px', padding: '5px 10px', backgroundColor: '#000', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
-                >
-                  Detayları Gör
-                </button>
-              </div>
-            </Popup>
-          </Marker>
-        ))}
+        {dynamicBarbers && dynamicBarbers.map((barber: any) => {
+          if (!barber.latitude || !barber.longitude) return null;
+          return (
+            <Marker 
+              key={barber.id} 
+              position={[barber.latitude, barber.longitude]}
+            >
+              <Popup>
+                <div style={{ textAlign: 'center' }}>
+                  <b style={{ fontSize: '14px' }}>{barber.name}</b><br/>
+                  <span style={{ color: '#666' }}>{barber.type?.toUpperCase()}</span><br/>
+                  <span style={{ color: '#f39c12' }}>⭐ {(barber.rating || 0).toFixed(1)}</span><br/>
+                  <button 
+                    onClick={() => setSelectedBarber(barber)}
+                    style={{ marginTop: '10px', padding: '5px 10px', backgroundColor: '#000', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
+                  >
+                    Detayları Gör
+                  </button>
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
       </MapContainer>
     </View>
   );
