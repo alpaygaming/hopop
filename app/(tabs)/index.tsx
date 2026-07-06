@@ -374,7 +374,15 @@ export default function App() {
 
     // Eski lokal state güncellemeleri
     const found = registeredUsers.find(u => u.username.toLowerCase() === loginUsername.toLowerCase()) || {
-      name: profile.full_name || loginUsername, username: loginUsername, password: loginPassword, role: profile.role || 'customer', avatar: profile.avatar_url || 'https://picsum.photos/id/64/200', balance: 500, experiences: [], appointments: []
+      name: profile.full_name || loginUsername, 
+      username: loginUsername, 
+      password: loginPassword, 
+      role: profile.role || 'customer', 
+      avatar: profile.avatar_url || 'https://picsum.photos/id/64/200', 
+      balance: 500, 
+      experiences: [], 
+      appointments: [],
+      shopName: undefined
     };
     
     setCurrentUsername(found.username);
