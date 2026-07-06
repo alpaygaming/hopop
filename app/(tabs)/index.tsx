@@ -213,6 +213,7 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState('');
   const [regName, setRegName] = useState('');
   const [regUsername, setRegUsername] = useState('');
+  const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regRole, setRegRole] = useState<'customer' | 'owner'>('customer');
   const [regShopName, setRegShopName] = useState('');
@@ -342,21 +343,32 @@ export default function App() {
   const handleLogin = async () => {
     if (!loginUsername.trim() || !loginPassword.trim()) { Alert.alert("Hata", "Lütfen tüm alanları doldurun."); return; }
     
-    // Supabase Kimlik Doğrulama
-    const fakeEmail = loginUsername.toLowerCase().replace(/\s/g, '') + '@hopop.com';
+    // Supabase'den kullanıcı adını aratıp e-postasını bul
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('email, role, full_name, avatar_url')
+      .eq('username', loginUsername)
+      .single();
+
+    if (profileError || !profile || !profile.email) {
+      Alert.alert("Hata", "Böyle bir kullanıcı bulunamadı."); 
+      return;
+    }
+
+    // Bulunan e-posta ile giriş yap
     const { error } = await supabase.auth.signInWithPassword({
-      email: fakeEmail,
+      email: profile.email,
       password: loginPassword
     });
 
     if (error) { 
-      Alert.alert("Hata", "Kullanıcı adı veya şifre hatalı."); 
+      Alert.alert("Hata", "Şifreniz hatalı."); 
       return; 
     }
 
     // Eski lokal state güncellemeleri
     const found = registeredUsers.find(u => u.username.toLowerCase() === loginUsername.toLowerCase()) || {
-      name: loginUsername, username: loginUsername, password: loginPassword, role: 'customer', avatar: 'https://picsum.photos/id/64/200', balance: 500, experiences: [], appointments: []
+      name: profile.full_name || loginUsername, username: loginUsername, password: loginPassword, role: profile.role || 'customer', avatar: profile.avatar_url || 'https://picsum.photos/id/64/200', balance: 500, experiences: [], appointments: []
     };
     
     setCurrentUsername(found.username);
@@ -379,15 +391,17 @@ export default function App() {
   };
 
   const handleRegister = async () => {
-    if (!regName.trim() || !regUsername.trim() || !regPassword.trim()) { Alert.alert("Hata", "Lütfen tüm alanları doldurun."); return; }
+    if (!regName.trim() || !regUsername.trim() || !regEmail.trim() || !regPassword.trim()) { Alert.alert("Hata", "Lütfen tüm alanları doldurun."); return; }
     if (regRole === 'owner' && !regShopName.trim()) { Alert.alert("Hata", "İşletme adı zorunludur."); return; }
-    if (registeredUsers.find(u => u.username.toLowerCase() === regUsername.toLowerCase())) { Alert.alert("Hata", "Bu kullanıcı adı zaten kullanılıyor."); return; }
     if (regPassword.length < 6) { Alert.alert("Hata", "Şifre en az 6 karakter olmalıdır."); return; } // Supabase requires min 6 chars
     
+    // Kullanıcı adının benzersizliğini kontrol et
+    const { data: existingProfile } = await supabase.from('profiles').select('id').eq('username', regUsername).single();
+    if (existingProfile) { Alert.alert("Hata", "Bu kullanıcı adı zaten alınmış."); return; }
+
     // Supabase Kayıt İşlemi
-    const fakeEmail = regUsername.toLowerCase().replace(/\s/g, '') + '@hopop.com';
     const { data, error } = await supabase.auth.signUp({
-      email: fakeEmail,
+      email: regEmail,
       password: regPassword,
     });
 
@@ -398,7 +412,9 @@ export default function App() {
 
     if (data.user) {
       await supabase.from('profiles').update({ 
-        full_name: regName, 
+        full_name: regName,
+        username: regUsername,
+        email: regEmail,
         role: regRole === 'owner' ? 'admin' : 'customer' 
       }).eq('id', data.user.id);
     }
@@ -489,6 +505,7 @@ export default function App() {
 
           <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Ad Soyad" value={regName} onChangeText={setRegName} />
           <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Kullanıcı Adı" value={regUsername} onChangeText={setRegUsername} autoCapitalize="none" />
+          <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="E-posta Adresi" value={regEmail} onChangeText={setRegEmail} autoCapitalize="none" keyboardType="email-address" />
           <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Şifre (en az 6 karakter)" value={regPassword} onChangeText={setRegPassword} secureTextEntry />
           {regRole === 'owner' && <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="İşletme / Dükkan Adı" value={regShopName} onChangeText={setRegShopName} />}
 
