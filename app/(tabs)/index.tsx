@@ -3,6 +3,7 @@ import * as Location from 'expo-location';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Animated, FlatList, Image, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Keyboard, TouchableWithoutFeedback, KeyboardAvoidingView } from 'react-native';
 import AppMap from '../../components/AppMap';
+import AdminMap from '../../components/AdminMap';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
@@ -161,7 +162,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'map' | 'shops' | 'appointments' | 'profile' | 'owner_panel'>('map');
 
   // Müşteri State
-  const [user, setUser] = useState({ name: '', username: '', balance: 0, avatar: 'https://picsum.photos/id/64/200' });
+  const [user, setUser] = useState({ id: '', name: '', username: '', balance: 0, avatar: 'https://picsum.photos/id/64/200' });
   const [userExperiences, setUserExperiences] = useState<Review[]>([]);
   const [currentUsername, setCurrentUsername] = useState<string | null>(null);
   
@@ -170,6 +171,10 @@ export default function App() {
 
   // İşletme State
   const [ownerShop, setOwnerShop] = useState({ name: 'Elite Master Salon', balance: 250, views: 1540, isPromoted: false, promoTime: 43200 });
+  const [adminShop, setAdminShop] = useState<any>(null); // Gerçek Supabase Dükkanı
+  const [newShopData, setNewShopData] = useState({ name: '', description: '', address: '' });
+  const [newShopLocation, setNewShopLocation] = useState<{latitude: number, longitude: number} | null>(null);
+  
   const [ownerAppointments, setOwnerAppointments] = useState<Appointment[]>([
     { id: 'ex-1', shopId: 'osm-1', barberName: 'Elite Master Salon', date: 'Bugün', time: '15:30', price: 350, type: 'berber', customerName: 'Emre Yıldız', status: 'active' }
   ]);
@@ -301,19 +306,40 @@ export default function App() {
     if (!selectedCategory || !location) return;
     const loadPlaces = async () => {
       setMapLoading(true);
-      const places = await fetchNearbyPlaces(
-        location.coords.latitude,
-        location.coords.longitude,
-        selectedCategory,
-        globalReviews
-      );
-      setDynamicBarbers(places);
-      setMapLoading(false);
-      if (places.length === 0) {
-        showNotification('Bu kategoride yakınında dükkan bulunamadı 😕');
-      } else {
-        showNotification(`${places.length} dükkan bulundu! 📍`);
+      
+      let query = supabase.from('shops').select('*');
+      if (selectedCategory !== 'all') {
+        query = query.eq('category', selectedCategory);
       }
+      
+      const { data, error } = await query;
+      
+      if (error) {
+        showNotification('Harita verisi çekilemedi.');
+      } else {
+        const places = (data || []).map((shop: any) => ({
+          id: shop.id,
+          name: shop.name,
+          latitude: shop.latitude,
+          longitude: shop.longitude,
+          rating: shop.rating || 0,
+          type: shop.category,
+          imageUrl: shop.image_url || `https://picsum.photos/seed/${shop.id}/400/300`,
+          views: 0,
+          reviews: globalReviews[shop.id] || [],
+          address: shop.address || '',
+          description: shop.description || '',
+          distance: calculateDistance(location.coords.latitude, location.coords.longitude, shop.latitude, shop.longitude)
+        }));
+        
+        setDynamicBarbers(places);
+        if (places.length === 0) {
+          showNotification('Bu kategoride yakınında dükkan bulunamadı 😕');
+        } else {
+          showNotification(`${places.length} dükkan bulundu! 📍`);
+        }
+      }
+      setMapLoading(false);
     };
     loadPlaces();
   }, [selectedCategory, location]);
@@ -348,7 +374,7 @@ export default function App() {
       
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('email, role, full_name, avatar_url')
+        .select('id, email, role, full_name, avatar_url')
         .eq('username', loginUsername)
         .maybeSingle();
 
@@ -373,11 +399,12 @@ export default function App() {
       }
 
     // Eski lokal state güncellemeleri
+    const frontendRole = profile.role === 'admin' ? 'owner' : 'customer';
     const found = registeredUsers.find(u => u.username.toLowerCase() === loginUsername.toLowerCase()) || {
       name: profile.full_name || loginUsername, 
       username: loginUsername, 
       password: loginPassword, 
-      role: profile.role || 'customer', 
+      role: frontendRole, 
       avatar: profile.avatar_url || 'https://picsum.photos/id/64/200', 
       balance: 500, 
       experiences: [], 
@@ -385,12 +412,23 @@ export default function App() {
       shopName: undefined
     };
     
+    // Admin shop bilgisini çek
+    if (frontendRole === 'owner') {
+      const { data: shop } = await supabase.from('shops').select('*').eq('owner_id', profile.id).maybeSingle();
+      if (shop) {
+         setAdminShop(shop);
+         setOwnerShop(prev => ({ ...prev, name: shop.name }));
+      } else {
+         setAdminShop(null);
+      }
+    }
+    
     setCurrentUsername(found.username);
     setUserRole(found.role as any);
-    setUser({ name: found.name, username: found.username, balance: found.balance, avatar: found.avatar });
+    setUser({ id: profile.id, name: found.name, username: found.username, balance: found.balance, avatar: found.avatar });
     setUserExperiences(found.experiences || []);
     setAppointments(found.appointments || []);
-    setEditProfileData({ name: found.name, username: found.username, balance: found.balance, avatar: found.avatar });
+    setEditProfileData({ id: profile.id, name: found.name, username: found.username, balance: found.balance, avatar: found.avatar });
     
     if (found.role === 'owner' && found.shopName) {
       setOwnerShop(prev => ({ ...prev, name: found.shopName! }));
@@ -464,6 +502,28 @@ export default function App() {
     } catch (err: any) {
       setAuthError(err.message || "Bilinmeyen bir hata oluştu.");
     }
+  };
+
+  const handleCreateShop = async () => {
+    if (!newShopLocation) { alert("Lütfen haritadan konum seçin."); return; }
+    if (!newShopData.name.trim() || !newShopData.description.trim()) { alert("Lütfen dükkan adını ve açıklamasını doldurun."); return; }
+    
+    const shopToInsert = {
+      owner_id: user.id,
+      name: newShopData.name,
+      description: newShopData.description,
+      address: newShopData.address,
+      latitude: newShopLocation.latitude,
+      longitude: newShopLocation.longitude,
+      category: 'berber'
+    };
+    
+    const { data, error } = await supabase.from('shops').insert(shopToInsert).select('*').single();
+    if (error) { alert("Hata: " + error.message); return; }
+    
+    setAdminShop(data);
+    setOwnerShop(prev => ({ ...prev, name: data.name }));
+    showNotification("Dükkan başarıyla oluşturuldu! 🎉");
   };
 
   const handleAddExperience = () => {
@@ -704,10 +764,33 @@ export default function App() {
       {/* --- İŞLETME PANELİ (FULL) --- */}
       {userRole === 'owner' && (
         <View style={styles.tabPadding}>
-          <View style={styles.ownerTopHeader}>
-            <View><Text style={styles.ownerShopName}>{ownerShop.name}</Text><Text style={{ color: '#aaa' }}>Bakiye: ₺{ownerShop.balance}</Text></View>
-            <View style={styles.viewBadge}><Ionicons name="eye" size={14} color="#7d5fff" /><Text style={styles.viewText}>{ownerShop.views}</Text></View>
-          </View>
+          {!adminShop ? (
+            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+              <Text style={styles.tabTitle}>DÜKKANINI OLUŞTUR</Text>
+              <Text style={{ marginBottom: 20, color: '#666' }}>Sisteme kayıtlı bir dükkanınız yok. Haritaya basılı tutarak dükkanınızın konumunu seçin ve bilgileri doldurun.</Text>
+              
+              <View style={{ height: 300, borderRadius: 15, overflow: 'hidden', marginBottom: 20 }}>
+                <AdminMap style={{ flex: 1 }} selectedLocation={newShopLocation} onMapPress={(e: any) => setNewShopLocation(e.nativeEvent.coordinate)} />
+              </View>
+              
+              <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Dükkan Adı" value={newShopData.name} onChangeText={(t) => setNewShopData({...newShopData, name: t})} />
+              <TextInput style={[styles.authInput, { height: 80 }]} placeholderTextColor="#555" placeholder="Hizmet Açıklaması (Örn: Erkek Saç Kesimi)" value={newShopData.description} onChangeText={(t) => setNewShopData({...newShopData, description: t})} multiline />
+              <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Açık Adres" value={newShopData.address} onChangeText={(t) => setNewShopData({...newShopData, address: t})} />
+              
+              <TouchableOpacity style={styles.authPrimaryBtn} onPress={handleCreateShop}>
+                <Text style={styles.authPrimaryBtnText}>DÜKKANI KAYDET</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.logoutBtn} onPress={() => { setCurrentUsername(null); setAuthState('login'); }}>
+                <Text style={{ color: 'red', fontWeight: 'bold' }}>Hesaptan Çıkış Yap</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          ) : (
+            <View style={{ flex: 1 }}>
+              <View style={styles.ownerTopHeader}>
+                <View><Text style={styles.ownerShopName}>{ownerShop.name}</Text><Text style={{ color: '#aaa' }}>Bakiye: ₺{ownerShop.balance}</Text></View>
+                <View style={styles.viewBadge}><Ionicons name="eye" size={14} color="#7d5fff" /><Text style={styles.viewText}>{ownerShop.views}</Text></View>
+              </View>
 
           <View style={styles.promoPanel}>
             <Text style={styles.panelTitle}>Sponsorlu Öne Çıkarma</Text>
@@ -724,14 +807,16 @@ export default function App() {
             )}
           </View>
 
-          <View style={styles.ownerSectionHead}>
-            <Text style={styles.sectionTitle}>RANDEVULAR</Text>
-            <TouchableOpacity onPress={() => setShowManualAddModal(true)}><Text style={styles.addManualText}>+ ELLE EKLE</Text></TouchableOpacity>
-          </View>
-          <FlatList data={ownerAppointments} keyExtractor={item => item.id} renderItem={({ item }) => (
-            <View style={styles.ownerAppCard}><View><Text style={{ fontWeight: 'bold' }}>{item.customerName}</Text><Text style={{ color: '#aaa', fontSize: 12 }}>{item.time}</Text></View><Ionicons name="checkmark-circle" size={20} color="#2ed573" /></View>
-          )} />
-          <TouchableOpacity style={styles.logoutBtn} onPress={() => { setCurrentUsername(null); setAuthState('login'); }}><Text style={{ color: '#aaa' }}>Panelden Çıkış</Text></TouchableOpacity>
+              <View style={styles.ownerSectionHead}>
+                <Text style={styles.sectionTitle}>RANDEVULAR</Text>
+                <TouchableOpacity onPress={() => setShowManualAddModal(true)}><Text style={styles.addManualText}>+ ELLE EKLE</Text></TouchableOpacity>
+              </View>
+              <FlatList data={ownerAppointments} keyExtractor={item => item.id} renderItem={({ item }) => (
+                <View style={styles.ownerAppCard}><View><Text style={{ fontWeight: 'bold' }}>{item.customerName}</Text><Text style={{ color: '#aaa', fontSize: 12 }}>{item.time}</Text></View><Ionicons name="checkmark-circle" size={20} color="#2ed573" /></View>
+              )} />
+              <TouchableOpacity style={styles.logoutBtn} onPress={() => { setCurrentUsername(null); setAuthState('login'); }}><Text style={{ color: '#aaa' }}>Panelden Çıkış</Text></TouchableOpacity>
+            </View>
+          )}
         </View>
       )}
 
