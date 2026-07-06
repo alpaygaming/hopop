@@ -471,7 +471,7 @@ export default function App() {
     let frontendRole = profile.role; // 'admin' veya 'customer'
     
     if (profile.role === 'admin') {
-      const { data: shops } = await supabase.from('shops').select('id, name, promotion_status');
+      const { data: shops } = await supabase.from('shops').select('id, name, promotion_status, latitude, longitude');
       setSystemShops(shops || []);
       setPromoRequests((shops || []).filter(s => s.promotion_status === 'pending'));
     } else {

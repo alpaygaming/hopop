@@ -62,14 +62,17 @@ export default function AdminMap({ style, selectedLocation, onMapPress, systemSh
           </Marker>
         )}
         
-        {systemShops.map((shop: any) => (
-          <Marker 
-            key={shop.id} 
-            position={[shop.latitude, shop.longitude]}
-          >
-            <Popup>{shop.name}</Popup>
-          </Marker>
-        ))}
+        {systemShops.map((shop: any) => {
+          if (!shop.latitude || !shop.longitude) return null;
+          return (
+            <Marker 
+              key={shop.id} 
+              position={[shop.latitude, shop.longitude]}
+            >
+              <Popup>{shop.name}</Popup>
+            </Marker>
+          );
+        })}
       </MapContainer>
     </View>
   );

@@ -33,7 +33,7 @@ export default function AppMap({ location, dynamicBarbers, setSelectedBarber, ma
     return <View style={[mapStyle, { justifyContent: 'center', alignItems: 'center' }]}><Text>Harita Yükleniyor...</Text></View>;
   }
 
-  const initialLocation = location || { latitude: 41.0082, longitude: 28.9784 };
+  const initialLocation = location?.coords || { latitude: 41.0082, longitude: 28.9784 };
 
   return (
     <View style={mapStyle}>
