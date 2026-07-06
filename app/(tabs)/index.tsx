@@ -341,30 +341,36 @@ export default function App() {
   };
 
   const handleLogin = async () => {
-    if (!loginUsername.trim() || !loginPassword.trim()) { Alert.alert("Hata", "Lütfen tüm alanları doldurun."); return; }
-    
-    // Supabase'den kullanıcı adını aratıp e-postasını bul
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('email, role, full_name, avatar_url')
-      .eq('username', loginUsername)
-      .single();
+    try {
+      if (!loginUsername.trim() || !loginPassword.trim()) { Alert.alert("Hata", "Lütfen tüm alanları doldurun."); return; }
+      
+      // Supabase'den kullanıcı adını aratıp e-postasını bul
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('email, role, full_name, avatar_url')
+        .eq('username', loginUsername)
+        .maybeSingle();
 
-    if (profileError || !profile || !profile.email) {
-      Alert.alert("Hata", "Böyle bir kullanıcı bulunamadı."); 
-      return;
-    }
+      if (profileError) {
+        Alert.alert("Veritabanı Hatası", "SQL kodu çalıştırılmamış olabilir: " + profileError.message);
+        return;
+      }
 
-    // Bulunan e-posta ile giriş yap
-    const { error } = await supabase.auth.signInWithPassword({
-      email: profile.email,
-      password: loginPassword
-    });
+      if (!profile || !profile.email) {
+        Alert.alert("Hata", "Böyle bir kullanıcı bulunamadı."); 
+        return;
+      }
 
-    if (error) { 
-      Alert.alert("Hata", "Şifreniz hatalı."); 
-      return; 
-    }
+      // Bulunan e-posta ile giriş yap
+      const { error } = await supabase.auth.signInWithPassword({
+        email: profile.email,
+        password: loginPassword
+      });
+
+      if (error) { 
+        Alert.alert("Hata", "Şifreniz hatalı veya E-posta onayı kapatılmamış: " + error.message); 
+        return; 
+      }
 
     // Eski lokal state güncellemeleri
     const found = registeredUsers.find(u => u.username.toLowerCase() === loginUsername.toLowerCase()) || {
@@ -382,42 +388,55 @@ export default function App() {
       setOwnerShop(prev => ({ ...prev, name: found.shopName! }));
     }
     
-    setAuthState('loggedIn');
-    setActiveTab(found.role === 'customer' ? 'map' : 'owner_panel');
-    setSelectedCategory(null);
-    setLoginUsername('');
-    setLoginPassword('');
-    showNotification(`Hoş geldin, ${found.name}! 👋`);
+      setAuthState('loggedIn');
+      setActiveTab(found.role === 'customer' ? 'map' : 'owner_panel');
+      setSelectedCategory(null);
+      setLoginUsername('');
+      setLoginPassword('');
+      showNotification(`Hoş geldin, ${found.name}! 👋`);
+    } catch (err: any) {
+      Alert.alert("Sistem Hatası", err.message || "Bilinmeyen bir hata oluştu.");
+    }
   };
 
   const handleRegister = async () => {
-    if (!regName.trim() || !regUsername.trim() || !regEmail.trim() || !regPassword.trim()) { Alert.alert("Hata", "Lütfen tüm alanları doldurun."); return; }
-    if (regRole === 'owner' && !regShopName.trim()) { Alert.alert("Hata", "İşletme adı zorunludur."); return; }
-    if (regPassword.length < 6) { Alert.alert("Hata", "Şifre en az 6 karakter olmalıdır."); return; } // Supabase requires min 6 chars
-    
-    // Kullanıcı adının benzersizliğini kontrol et
-    const { data: existingProfile } = await supabase.from('profiles').select('id').eq('username', regUsername).single();
-    if (existingProfile) { Alert.alert("Hata", "Bu kullanıcı adı zaten alınmış."); return; }
+    try {
+      if (!regName.trim() || !regUsername.trim() || !regEmail.trim() || !regPassword.trim()) { Alert.alert("Hata", "Lütfen tüm alanları doldurun."); return; }
+      if (regRole === 'owner' && !regShopName.trim()) { Alert.alert("Hata", "İşletme adı zorunludur."); return; }
+      if (regPassword.length < 6) { Alert.alert("Hata", "Şifre en az 6 karakter olmalıdır."); return; }
+      
+      // Kullanıcı adının benzersizliğini kontrol et
+      const { data: existingProfile, error: existError } = await supabase.from('profiles').select('id').eq('username', regUsername).maybeSingle();
+      if (existError && existError.code !== 'PGRST116' && existError.code !== '42703') {
+         // 42703 means column doesn't exist
+         console.error("DB Check error:", existError);
+      }
+      if (existingProfile) { Alert.alert("Hata", "Bu kullanıcı adı zaten alınmış."); return; }
 
-    // Supabase Kayıt İşlemi
-    const { data, error } = await supabase.auth.signUp({
-      email: regEmail,
-      password: regPassword,
-    });
-
-    if (error) {
-      Alert.alert("Hata", error.message);
-      return;
-    }
-
-    if (data.user) {
-      await supabase.from('profiles').update({ 
-        full_name: regName,
-        username: regUsername,
+      // Supabase Kayıt İşlemi
+      const { data, error } = await supabase.auth.signUp({
         email: regEmail,
-        role: regRole === 'owner' ? 'admin' : 'customer' 
-      }).eq('id', data.user.id);
-    }
+        password: regPassword,
+      });
+
+      if (error) {
+        Alert.alert("Kayıt Hatası", error.message);
+        return;
+      }
+
+      if (data.user) {
+        const { error: updateError } = await supabase.from('profiles').update({ 
+          full_name: regName,
+          username: regUsername,
+          email: regEmail,
+          role: regRole === 'owner' ? 'admin' : 'customer' 
+        }).eq('id', data.user.id);
+        
+        if (updateError) {
+          console.error("Profile update error:", updateError);
+          Alert.alert("Uyarı", "Kullanıcı oluşturuldu fakat profil detayları veritabanına eklenemedi. SQL kodunu çalıştırdığınızdan emin olun!");
+        }
+      }
 
     const newUser: RegisteredUser = {
       name: regName, username: regUsername, password: regPassword, role: regRole,
@@ -431,11 +450,14 @@ export default function App() {
     setRegisteredUsers(updatedUsers);
     saveUsersToStorage(updatedUsers);
     
-    setLoginUsername(regUsername);
-    setLoginPassword('');
-    setRegName(''); setRegUsername(''); setRegPassword(''); setRegShopName('');
-    setAuthState('login');
-    Alert.alert("Başarılı! ✅", "Hesabınız oluşturuldu. Şimdi giriş yapabilirsiniz.");
+      setLoginUsername(regUsername);
+      setLoginPassword('');
+      setRegName(''); setRegUsername(''); setRegPassword(''); setRegShopName(''); setRegEmail('');
+      setAuthState('login');
+      Alert.alert("Başarılı! ✅", "Hesabınız oluşturuldu. Şimdi giriş yapabilirsiniz.");
+    } catch (err: any) {
+      Alert.alert("Sistem Hatası", err.message || "Bilinmeyen bir hata oluştu.");
+    }
   };
 
   const handleAddExperience = () => {
