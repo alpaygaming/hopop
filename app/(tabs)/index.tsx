@@ -215,6 +215,7 @@ export default function App() {
   const [regUsername, setRegUsername] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
+  const [authError, setAuthError] = useState('');
   const [regRole, setRegRole] = useState<'customer' | 'owner'>('customer');
   const [regShopName, setRegShopName] = useState('');
 
@@ -342,9 +343,9 @@ export default function App() {
 
   const handleLogin = async () => {
     try {
-      if (!loginUsername.trim() || !loginPassword.trim()) { Alert.alert("Hata", "Lütfen tüm alanları doldurun."); return; }
+      setAuthError('');
+      if (!loginUsername.trim() || !loginPassword.trim()) { setAuthError("Lütfen tüm alanları doldurun."); return; }
       
-      // Supabase'den kullanıcı adını aratıp e-postasını bul
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('email, role, full_name, avatar_url')
@@ -352,23 +353,22 @@ export default function App() {
         .maybeSingle();
 
       if (profileError) {
-        Alert.alert("Veritabanı Hatası", "SQL kodu çalıştırılmamış olabilir: " + profileError.message);
+        setAuthError("SQL kodu çalıştırılmamış olabilir: " + profileError.message);
         return;
       }
 
       if (!profile || !profile.email) {
-        Alert.alert("Hata", "Böyle bir kullanıcı bulunamadı."); 
+        setAuthError("Böyle bir kullanıcı bulunamadı."); 
         return;
       }
 
-      // Bulunan e-posta ile giriş yap
       const { error } = await supabase.auth.signInWithPassword({
         email: profile.email,
         password: loginPassword
       });
 
       if (error) { 
-        Alert.alert("Hata", "Şifreniz hatalı veya E-posta onayı kapatılmamış: " + error.message); 
+        setAuthError("Şifreniz hatalı veya E-posta onayı kapatılmamış: " + error.message); 
         return; 
       }
 
@@ -403,32 +403,30 @@ export default function App() {
       setLoginPassword('');
       showNotification(`Hoş geldin, ${found.name}! 👋`);
     } catch (err: any) {
-      Alert.alert("Sistem Hatası", err.message || "Bilinmeyen bir hata oluştu.");
+      setAuthError(err.message || "Bilinmeyen bir hata oluştu.");
     }
   };
 
   const handleRegister = async () => {
     try {
-      if (!regName.trim() || !regUsername.trim() || !regEmail.trim() || !regPassword.trim()) { Alert.alert("Hata", "Lütfen tüm alanları doldurun."); return; }
-      if (regRole === 'owner' && !regShopName.trim()) { Alert.alert("Hata", "İşletme adı zorunludur."); return; }
-      if (regPassword.length < 6) { Alert.alert("Hata", "Şifre en az 6 karakter olmalıdır."); return; }
+      setAuthError('');
+      if (!regName.trim() || !regUsername.trim() || !regEmail.trim() || !regPassword.trim()) { setAuthError("Lütfen tüm alanları doldurun."); return; }
+      if (regRole === 'owner' && !regShopName.trim()) { setAuthError("İşletme adı zorunludur."); return; }
+      if (regPassword.length < 6) { setAuthError("Şifre en az 6 karakter olmalıdır."); return; }
       
-      // Kullanıcı adının benzersizliğini kontrol et
       const { data: existingProfile, error: existError } = await supabase.from('profiles').select('id').eq('username', regUsername).maybeSingle();
       if (existError && existError.code !== 'PGRST116' && existError.code !== '42703') {
-         // 42703 means column doesn't exist
          console.error("DB Check error:", existError);
       }
-      if (existingProfile) { Alert.alert("Hata", "Bu kullanıcı adı zaten alınmış."); return; }
+      if (existingProfile) { setAuthError("Bu kullanıcı adı zaten alınmış."); return; }
 
-      // Supabase Kayıt İşlemi
       const { data, error } = await supabase.auth.signUp({
         email: regEmail,
         password: regPassword,
       });
 
       if (error) {
-        Alert.alert("Kayıt Hatası", error.message);
+        setAuthError("Kayıt Hatası: " + error.message);
         return;
       }
 
@@ -441,8 +439,8 @@ export default function App() {
         }).eq('id', data.user.id);
         
         if (updateError) {
-          console.error("Profile update error:", updateError);
-          Alert.alert("Uyarı", "Kullanıcı oluşturuldu fakat profil detayları veritabanına eklenemedi. SQL kodunu çalıştırdığınızdan emin olun!");
+          setAuthError("Kullanıcı oluşturuldu fakat detaylar eklenemedi: " + updateError.message);
+          return;
         }
       }
 
@@ -462,9 +460,9 @@ export default function App() {
       setLoginPassword('');
       setRegName(''); setRegUsername(''); setRegPassword(''); setRegShopName(''); setRegEmail('');
       setAuthState('login');
-      Alert.alert("Başarılı! ✅", "Hesabınız oluşturuldu. Şimdi giriş yapabilirsiniz.");
+      alert("Başarılı! Hesabınız oluşturuldu. Şimdi giriş yapabilirsiniz."); // fallback browser alert
     } catch (err: any) {
-      Alert.alert("Sistem Hatası", err.message || "Bilinmeyen bir hata oluştu.");
+      setAuthError(err.message || "Bilinmeyen bir hata oluştu.");
     }
   };
 
@@ -506,6 +504,7 @@ export default function App() {
       <View style={styles.authContainer} onStartShouldSetResponder={() => { Keyboard.dismiss(); return false; }}>
           <Text style={styles.welcomeTitle}>Hopop</Text>
           <Text style={styles.authSubtitle}>Randevuna bir adım kaldı</Text>
+          {authError ? <Text style={{ color: 'red', marginBottom: 10, textAlign: 'center' }}>{authError}</Text> : null}
           <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Kullanıcı Adı" value={loginUsername} onChangeText={setLoginUsername} autoCapitalize="none" />
           <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Şifre" value={loginPassword} onChangeText={setLoginPassword} secureTextEntry />
           <TouchableOpacity style={styles.authPrimaryBtn} onPress={handleLogin}><Text style={styles.authPrimaryBtnText}>GİRİŞ YAP</Text></TouchableOpacity>
@@ -533,6 +532,7 @@ export default function App() {
             </TouchableOpacity>
           </View>
 
+          {authError ? <Text style={{ color: 'red', marginBottom: 10, textAlign: 'center' }}>{authError}</Text> : null}
           <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Ad Soyad" value={regName} onChangeText={setRegName} />
           <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Kullanıcı Adı" value={regUsername} onChangeText={setRegUsername} autoCapitalize="none" />
           <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="E-posta Adresi" value={regEmail} onChangeText={setRegEmail} autoCapitalize="none" keyboardType="email-address" />
