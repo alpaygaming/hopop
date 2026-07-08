@@ -52,7 +52,7 @@ const OVERPASS_SERVERS = [
 ];
 
 interface Review {
-  id: string; user: string; userAvatar: string; shopId: string;
+  id: string; user: string; userAvatar: string; shopId: string; shopName?: string; appointmentId?: string;
   comment: string; star: number; imageUrl?: string; date: string;
 }
 
@@ -243,8 +243,10 @@ export default function App() {
   const [editProfileData, setEditProfileData] = useState(user);
   const [newExpShopName, setNewExpShopName] = useState('');
   const [newExpShopId, setNewExpShopId] = useState('');
+  const [newExpAppId, setNewExpAppId] = useState('');
   const [newExpComment, setNewExpComment] = useState('');
   const [newExpImage, setNewExpImage] = useState('');
+  const [newExpStar, setNewExpStar] = useState(5);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const [reviewTarget, setReviewTarget] = useState<Appointment | null>(null);
@@ -732,23 +734,42 @@ export default function App() {
     showNotification("Dükkan silindi!");
   };
 
+  const updateAverageRating = async (shopId: string, reviewsForShop: Review[]) => {
+    if (reviewsForShop.length === 0 || shopId.includes('osm-')) return;
+    const avg = reviewsForShop.reduce((sum, r) => sum + r.star, 0) / reviewsForShop.length;
+    
+    // Update local states
+    setDynamicBarbers(prev => prev.map(b => b.id === shopId ? { ...b, rating: avg } : b));
+    setSystemShops(prev => prev.map(s => s.id === shopId ? { ...s, rating: avg } : s));
+    if (ownerShopDb?.id === shopId) setOwnerShopDb({ ...ownerShopDb, rating: avg });
+    if (selectedBarber?.id === shopId) setSelectedBarber({ ...selectedBarber, rating: avg });
+    
+    // Update Supabase
+    await supabase.from('shops').update({ rating: avg }).eq('id', shopId);
+  };
+
   const handleAddExperience = () => {
     if (!newExpComment.trim()) { showNotification("Lütfen bir açıklama yazın."); return; }
-    if (!newExpShopName.trim() || !newExpShopId) { showNotification("Lütfen bir dükkan seçin."); return; }
+    if (!newExpShopName.trim() || !newExpShopId || !newExpAppId) { showNotification("Lütfen değerlendireceğiniz seansı seçin."); return; }
     const newExp: Review = {
       id: 'exp' + Date.now(),
       imageUrl: newExpImage || undefined,
       shopId: newExpShopId,
+      shopName: newExpShopName,
+      appointmentId: newExpAppId,
       comment: newExpComment,
-      star: 5,
+      star: newExpStar,
       date: new Date().toLocaleDateString(),
       user: user.name,
       userAvatar: user.avatar
     };
     
-    const newGlobalReviews = {...globalReviews, [newExpShopId]: [...(globalReviews[newExpShopId] || []), newExp]};
+    const shopReviews = [...(globalReviews[newExpShopId] || []), newExp];
+    const newGlobalReviews = {...globalReviews, [newExpShopId]: shopReviews};
     setGlobalReviews(newGlobalReviews);
     saveGlobalReviewsToStorage(newGlobalReviews);
+    
+    updateAverageRating(newExpShopId, shopReviews);
 
     const updatedExps = [newExp, ...userExperiences];
     setUserExperiences(updatedExps);
@@ -757,8 +778,10 @@ export default function App() {
     }
     setNewExpShopName('');
     setNewExpShopId('');
+    setNewExpAppId('');
     setNewExpComment('');
     setNewExpImage('');
+    setNewExpStar(5);
     setShowAddExpModal(false);
     showNotification("Deneyim başarıyla paylaşıldı! 🎉");
   };
@@ -994,7 +1017,7 @@ export default function App() {
                 {userExperiences.map(exp => (
                   <View key={exp.id} style={styles.expCard}>
                     {exp.imageUrl ? <Image source={{ uri: exp.imageUrl }} style={styles.expImg} /> : null}
-                    <Text style={{ fontWeight: 'bold', fontSize: 13, marginTop: 8 }}>{exp.shopId.includes('osm-') ? "Dükkan" : exp.shopId}</Text>
+                    <Text style={{ fontWeight: 'bold', fontSize: 13, marginTop: 8 }}>{exp.shopName || (exp.shopId.includes('osm-') ? "Dükkan" : exp.shopId)}</Text>
                     <Text style={{ color: '#f39c12', fontSize: 12 }}>{'⭐'.repeat(exp.star)}</Text>
                     <Text style={styles.expText} numberOfLines={3}>{exp.comment}</Text>
                   </View>
@@ -1308,14 +1331,17 @@ export default function App() {
                 <TouchableOpacity style={[styles.payBtn, { backgroundColor: '#ccc', flex: 1 }]} onPress={() => setShowAddExperienceModal(false)}><Text style={styles.payBtnText}>İPTAL</Text></TouchableOpacity>
                 <TouchableOpacity style={[styles.payBtn, { flex: 1 }]} onPress={() => { 
                   if(reviewTarget) {
-                    const newRev: Review = { id: Math.random().toString(), user: user.name, userAvatar: user.avatar, shopId: reviewTarget.shopId, comment: reviewData.comment || 'Puanlandı.', star: reviewData.star, imageUrl: reviewData.imageUrl, date: new Date().toLocaleDateString() };
-                    const newGlobalReviews = {...globalReviews, [reviewTarget.shopId]: [...(globalReviews[reviewTarget.shopId] || []), newRev]};
+                    const newRev: Review = { id: Math.random().toString(), user: user.name, userAvatar: user.avatar, shopId: reviewTarget.shopId, shopName: reviewTarget.barberName, appointmentId: reviewTarget.id, comment: reviewData.comment || 'Puanlandı.', star: reviewData.star, imageUrl: reviewData.imageUrl, date: new Date().toLocaleDateString() };
+                    const shopReviews = [...(globalReviews[reviewTarget.shopId] || []), newRev];
+                    const newGlobalReviews = {...globalReviews, [reviewTarget.shopId]: shopReviews};
                     const newApps = appointments.filter(a => a.id !== reviewTarget.id);
                     const newExps = [newRev, ...userExperiences];
                     
                     setGlobalReviews(newGlobalReviews);
                     setUserExperiences(newExps);
                     setAppointments(newApps);
+                    
+                    updateAverageRating(reviewTarget.shopId, shopReviews);
                     
                     if (currentUsername) {
                       updateUserInDb(currentUsername, { experiences: newExps, appointments: newApps });
@@ -1346,22 +1372,29 @@ export default function App() {
                     </View>
                   )}
                 </TouchableOpacity>
-                <Text style={{ fontWeight:'bold', marginBottom:5 }}>Hangi dükkanı değerlendiriyorsunuz?</Text>
+                <Text style={{ fontWeight:'bold', marginBottom:5 }}>Hangi seansı değerlendiriyorsunuz?</Text>
                 {appointments.length === 0 ? <Text style={{color:'#aaa', marginBottom:15}}>Hiç randevunuz yok.</Text> : (
                   <ScrollView style={{maxHeight: 120, marginBottom: 15, width:'100%'}}>
                     {appointments.map(app => (
-                       <TouchableOpacity key={app.id} style={{padding:10, backgroundColor: newExpShopId === app.shopId ? '#ddd' : '#f9f9f9', marginBottom:5, borderRadius:8, borderWidth: newExpShopId === app.shopId ? 2 : 0, borderColor: '#000'}} onPress={() => { setNewExpShopId(app.shopId); setNewExpShopName(app.barberName); }}>
+                       <TouchableOpacity key={app.id} style={{padding:10, backgroundColor: newExpAppId === app.id ? '#ddd' : '#f9f9f9', marginBottom:5, borderRadius:8, borderWidth: newExpAppId === app.id ? 2 : 0, borderColor: '#000'}} onPress={() => { setNewExpAppId(app.id); setNewExpShopId(app.shopId); setNewExpShopName(app.barberName); }}>
                           <Text style={{fontWeight:'bold'}}>{app.barberName}</Text>
                           <Text style={{fontSize:12, color:'#666'}}>{app.date} • {app.time}</Text>
                        </TouchableOpacity>
                     ))}
                   </ScrollView>
                 )}
+                <View style={{flexDirection: 'row', justifyContent: 'center', marginBottom: 15}}>
+                  {[1,2,3,4,5].map(s => (
+                    <TouchableOpacity key={s} onPress={() => setNewExpStar(s)}>
+                      <Text style={{fontSize: 30, color: newExpStar >= s ? '#f39c12' : '#ccc', marginHorizontal: 5}}>★</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
                 <TextInput style={[styles.authInput, {height:80}]} placeholderTextColor="#555" placeholder="Deneyiminizi anlatın..." value={newExpComment} onChangeText={setNewExpComment} multiline />
                 <TouchableOpacity style={styles.payBtn} onPress={handleAddExperience}>
                   <Text style={styles.payBtnText}>PAYLAŞ</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={{marginTop:15, alignItems:'center'}} onPress={() => { setShowAddExpModal(false); setNewExpImage(''); setNewExpShopName(''); setNewExpComment(''); }}>
+                <TouchableOpacity style={{marginTop:15, alignItems:'center'}} onPress={() => { setShowAddExpModal(false); setNewExpImage(''); setNewExpShopName(''); setNewExpShopId(''); setNewExpAppId(''); setNewExpComment(''); setNewExpStar(5); }}>
                   <Text style={{color:'#aaa'}}>İptal</Text>
                 </TouchableOpacity>
               </View>
