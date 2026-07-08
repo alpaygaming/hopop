@@ -327,10 +327,13 @@ export default function App() {
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect,
-      quality: 0.8,
+      quality: 0.4,
+      base64: true,
     });
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      setter(result.assets[0].uri);
+      const asset = result.assets[0];
+      const imageUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+      setter(imageUri);
     }
   };
 
@@ -1182,11 +1185,10 @@ export default function App() {
       <Modal visible={showManualAddModal} transparent animationType="slide"><View style={styles.modalOverlay}><View style={styles.paymentCard}><Text style={styles.modalTitle}>MANUEL RANDEVU</Text><TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Müşteri Adı" /><TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Saat (Örn: 10:30)" /><View style={{flexDirection:'row', gap:10}}><TouchableOpacity style={[styles.payBtn, {backgroundColor: '#ccc', flex:1}]} onPress={() => setShowManualAddModal(false)}><Text style={styles.payBtnText}>İPTAL</Text></TouchableOpacity><TouchableOpacity style={[styles.payBtn, {flex:1}]} onPress={() => { setOwnerAppointments([...ownerAppointments, { id: 'm1', shopId: 'osm-1', barberName: '', date: 'Bugün', time: '10:30', price: 0, type: '', customerName: 'Dükkan Müşterisi', status: 'active' }]); setShowManualAddModal(false); }}><Text style={styles.payBtnText}>KAYDET</Text></TouchableOpacity></View></View></View></Modal>
 
       <Modal visible={showEditProfileModal} transparent animationType="slide">
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-            <View style={styles.paymentCard}>
-              <Text style={styles.modalTitle}>PROFİLİ DÜZENLE</Text>
-              <TouchableOpacity style={styles.avatarEditContainer} onPress={() => pickImage(uri => setEditProfileData({...editProfileData, avatar: uri}))}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.paymentCard}>
+            <Text style={styles.modalTitle}>PROFİLİ DÜZENLE</Text>
+            <TouchableOpacity style={styles.avatarEditContainer} onPress={() => pickImage(uri => setEditProfileData({...editProfileData, avatar: uri}))}>
                 <Image source={{ uri: editProfileData.avatar }} style={styles.editAvatarImg} />
                 <View style={styles.avatarEditOverlay}>
                   <Ionicons name="camera" size={20} color="#fff" />
@@ -1206,14 +1208,12 @@ export default function App() {
               </View>
             </View>
           </KeyboardAvoidingView>
-        </TouchableWithoutFeedback>
       </Modal>
 
       <Modal visible={showAddExperienceModal} transparent animationType="slide">
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-            <View style={styles.paymentCard}>
-              <Text style={styles.modalTitle}>DENEYİM DEĞERLENDİR</Text>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.paymentCard}>
+            <Text style={styles.modalTitle}>DENEYİM DEĞERLENDİR</Text>
               <Text style={{fontWeight: 'bold', fontSize: 16, textAlign: 'center', marginBottom: 15}}>{reviewTarget?.barberName}</Text>
               
               <View style={{flexDirection: 'row', justifyContent: 'center', marginBottom: 20}}>
@@ -1258,12 +1258,10 @@ export default function App() {
               </View>
             </View>
           </KeyboardAvoidingView>
-        </TouchableWithoutFeedback>
       </Modal>
 
       {/* Manuel Deneyim Ekleme Modal */}
       <Modal visible={showAddExpModal} transparent animationType="slide">
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.modalOverlay}>
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
               <View style={styles.paymentCard}>
@@ -1289,7 +1287,6 @@ export default function App() {
               </View>
             </KeyboardAvoidingView>
           </View>
-        </TouchableWithoutFeedback>
       </Modal>
 
       <View style={styles.navBar}>
