@@ -259,6 +259,7 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
+  const [localImages, setLocalImages] = useState<string[]>([]);
   const [regName, setRegName] = useState('');
   const [regUsername, setRegUsername] = useState('');
   const [regEmail, setRegEmail] = useState('');
@@ -518,6 +519,7 @@ export default function App() {
       if (shop) {
          frontendRole = 'owner';
          setOwnerShopDb(shop);
+         setLocalImages(getShopImages(shop.image_url));
          setOwnerShop(prev => ({ ...prev, name: shop.name }));
       }
     }
@@ -702,7 +704,7 @@ export default function App() {
   };
 
   const handleAddExperience = () => {
-    if (!newExpComment.trim()) { Alert.alert("Hata", "Lütfen bir açıklama yazın."); return; }
+    if (!newExpComment.trim()) { alert("Lütfen bir açıklama yazın."); return; }
     const newExp: Review = {
       id: 'exp' + Date.now(),
       imageUrl: newExpImage || undefined,
@@ -1021,20 +1023,36 @@ export default function App() {
                 <Text style={styles.sectionTitle}>MAĞAZA VİTRİNİ</Text>
               </View>
               <View style={{ backgroundColor: '#f9f9f9', padding: 20, borderRadius: 15, marginBottom: 25 }}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom: 10}}>
-                  {getShopImages(ownerShopDb.image_url).map((img, i) => (
-                    <Image key={i} source={{uri: img}} style={{ width: 120, height: 120, borderRadius: 12, marginRight: 10, resizeMode: 'cover' }} />
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom: 15}}>
+                  {localImages.map((img, i) => (
+                    <View key={i} style={{ position: 'relative' }}>
+                      <Image source={{uri: img}} style={{ width: 120, height: 120, borderRadius: 12, marginRight: 10, resizeMode: 'cover' }} />
+                      <TouchableOpacity style={{ position: 'absolute', top: 5, right: 15, backgroundColor: 'rgba(255,0,0,0.8)', padding: 5, borderRadius: 15, zIndex: 10 }} onPress={() => {
+                        setLocalImages(localImages.filter((_, idx) => idx !== i));
+                      }}>
+                        <Ionicons name="trash" size={16} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
                   ))}
-                  <TouchableOpacity style={[styles.expPickerPlaceholder, {width: 120, height: 120, marginRight: 10, marginBottom: 0}]} onPress={() => pickImage(async (uri) => {
-                     const currentImages = getShopImages(ownerShopDb.image_url);
-                     const newImages = [...currentImages, uri];
-                     const { error } = await supabase.from('shops').update({ image_url: JSON.stringify(newImages) }).eq('id', ownerShopDb.id);
-                     if (!error) { setOwnerShopDb({...ownerShopDb, image_url: JSON.stringify(newImages)}); showNotification("Yeni fotoğraf eklendi!"); }
+                  <TouchableOpacity style={[styles.expPickerPlaceholder, {width: 120, height: 120, marginRight: 10, marginBottom: 0}]} onPress={() => pickImage((uri) => {
+                     setLocalImages([...localImages, uri]);
                   }, [16, 9])}>
                     <Ionicons name="add" size={40} color="#ccc" />
                     <Text style={{color:'#aaa', fontSize:12, marginTop:8, textAlign:'center'}}>Fotoğraf Ekle</Text>
                   </TouchableOpacity>
                 </ScrollView>
+                <TouchableOpacity style={[styles.payBtn, { marginBottom: 20 }]} onPress={async () => {
+                   const { error } = await supabase.from('shops').update({ image_url: JSON.stringify(localImages) }).eq('id', ownerShopDb.id);
+                   if (!error) { 
+                     setOwnerShopDb({...ownerShopDb, image_url: JSON.stringify(localImages)}); 
+                     showNotification("Vitrin fotoğrafları kaydedildi! ✅"); 
+                   } else {
+                     alert("Hata: " + error.message);
+                   }
+                }}>
+                  <Text style={styles.payBtnText}>FOTOĞRAFLARI KAYDET</Text>
+                </TouchableOpacity>
+
                 <Text style={{ fontWeight:'bold', marginBottom:10 }}>Çalışma Saatleri (Müşterilerin Seçebileceği Saatler)</Text>
                 <View style={{flexDirection:'row', flexWrap:'wrap', gap:10}}>
                    {["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"].map(t => {
