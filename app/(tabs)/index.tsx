@@ -982,7 +982,7 @@ export default function App() {
           )}
 
           {activeTab === 'profile' && (
-            <View style={styles.tabPadding}>
+            <ScrollView style={styles.tabPadding} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
               <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
                 <Text style={[styles.tabTitle, { color: 'black' }]}>PROFİLİM</Text>
                 <TouchableOpacity onPress={() => showNotification("Profil bilgileri güncel!")}>
@@ -1043,7 +1043,7 @@ export default function App() {
                 setCurrentUsername(null);
                 setAuthState('login'); 
               }}><Text style={{ color: 'red', fontWeight: 'bold' }}>Çıkış Yap</Text></TouchableOpacity>
-            </View>
+            </ScrollView>
           )}
         </View>
       )}
