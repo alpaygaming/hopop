@@ -400,8 +400,11 @@ export default function App() {
       setDbLoaded(true);
 
       try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
+        const permPromise = Location.requestForegroundPermissionsAsync();
+        const permTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Perm timeout')), 3000));
+        let statusObj = await Promise.race([permPromise, permTimeout]) as any;
+        
+        if (!statusObj || statusObj.status !== 'granted') {
           setLocation({ coords: { latitude: 41.0082, longitude: 28.9784 } } as any);
         } else {
           const locationPromise = Location.getCurrentPositionAsync({ accuracy: 3 }); // Accuracy.Balanced = 3
