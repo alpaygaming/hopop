@@ -1438,10 +1438,19 @@ export default function App() {
                 <TouchableOpacity style={[styles.payBtn, { backgroundColor: '#ccc', flex: 1 }]} onPress={() => setShowAddExperienceModal(false)}><Text style={styles.payBtnText}>İPTAL</Text></TouchableOpacity>
                 <TouchableOpacity style={[styles.payBtn, { flex: 1 }]} onPress={async () => { 
                   if(reviewTarget) {
+                    const isValidUuid = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+                    const apptId = isValidUuid(reviewTarget.id) ? reviewTarget.id : null;
+                    const shopId = isValidUuid(reviewTarget.shopId) ? reviewTarget.shopId : null;
+
+                    if (!shopId) {
+                      setAuthError("Bu dükkan veritabanında gerçek bir kimliğe sahip değil (Eski/Mock dükkan). Yorum yapılamaz.");
+                      return;
+                    }
+
                     const { data: newDbRev, error } = await supabase.from('reviews').insert({
-                      shop_id: reviewTarget.shopId,
+                      shop_id: shopId,
                       user_id: user.id,
-                      appointment_id: reviewTarget.id,
+                      appointment_id: apptId,
                       comment: reviewData.comment || 'Puanlandı.',
                       star: reviewData.star,
                       image_url: reviewData.imageUrl
