@@ -295,13 +295,14 @@ export default function App() {
 
       const loadGlobalReviewsFromStorage = async () => {
         try {
-          const rData = await AsyncStorage.getItem('hopop_reviews');
+          const rData = await AsyncStorage.getItem('hopop_global_reviews');
           if (rData) setGlobalReviews(JSON.parse(rData));
           
           const reqData = await AsyncStorage.getItem('hopop_delete_requests');
           if (reqData) setDeleteRequests(JSON.parse(reqData));
         } catch (e) {}
       };
+      await loadGlobalReviewsFromStorage();
 
     } catch (e) {
       console.log('Load error:', e);
@@ -337,7 +338,6 @@ export default function App() {
       return updated;
     });
 
-    // Also push profile updates to Supabase
     if (updates.name || updates.avatar) {
        const profileUpdates: any = {};
        if (updates.name) profileUpdates.full_name = updates.name;
@@ -364,7 +364,6 @@ export default function App() {
     }
   };
 
-  // Reklam Sayacı
   useEffect(() => {
     let interval: any;
     if (ownerShop.isPromoted && ownerShop.promoTime > 0) {
@@ -395,7 +394,6 @@ export default function App() {
     })();
   }, []);
 
-  // Kategori seçildiğinde gerçek verileri Overpass API'den çek
   useEffect(() => {
     if (!selectedCategory || !location) return;
     const loadPlaces = async () => {
@@ -458,7 +456,6 @@ export default function App() {
     if (!selectedTime) { Alert.alert("Hata", "Lütfen saat seçiniz."); return; }
     if (user.balance < 350) { Alert.alert("Hata", "Yetersiz bakiye."); return; }
     
-    // Parse time and create a Date object for today
     const appDate = new Date();
     const [hours, mins] = selectedTime.split(':');
     appDate.setHours(parseInt(hours), parseInt(mins), 0);
@@ -479,7 +476,6 @@ export default function App() {
     const newBalance = user.balance - 350;
     setUser(prev => ({ ...prev, balance: newBalance }));
     
-    // Format to match local UI state temporarily until full fetch
     const localApp = { 
       id: newApp.id, 
       shopId: selectedBarber!.id, 
@@ -538,8 +534,7 @@ export default function App() {
         return; 
       }
 
-    // Yeni Mimari Rol Belirleme
-    let frontendRole = profile.role; // 'admin' veya 'customer'
+    let frontendRole = profile.role; 
     
     if (profile.role === 'admin') {
       const { data: shops } = await supabase.from('shops').select('id, name, promotion_status, latitude, longitude');
@@ -576,7 +571,6 @@ export default function App() {
       saveUsersToStorage(updatedUsers);
     }
     
-    // Fetch real appointments
     let fetchedApps: any[] = [];
     if (frontendRole === 'customer') {
       const { data: cApps } = await supabase.from('appointments').select('*, shops(name, category)').eq('user_id', profile.id).order('created_at', { ascending: false });
@@ -635,9 +629,6 @@ export default function App() {
       if (regPassword.length < 6) { setAuthError("Şifre en az 6 karakter olmalıdır."); return; }
       
       const { data: existingProfile, error: existError } = await supabase.from('profiles').select('id').eq('username', regUsername).maybeSingle();
-      if (existError && existError.code !== 'PGRST116' && existError.code !== '42703') {
-         console.error("DB Check error:", existError);
-      }
       if (existingProfile) { setAuthError("Bu kullanıcı adı zaten alınmış."); return; }
 
       const { data, error } = await supabase.auth.signUp({
@@ -651,29 +642,19 @@ export default function App() {
       }
 
       if (data.user) {
-        const { error: updateError } = await supabase.from('profiles').update({ 
+        await supabase.from('profiles').update({ 
           full_name: regName,
           username: regUsername,
           email: regEmail,
-          role: 'customer' // Veritabanında herkes müşteri kaydedilir. İşletme yetkisi dükkan atanarak verilir.
+          role: 'customer'
         }).eq('id', data.user.id);
-        
-        if (updateError) {
-          setAuthError("Kullanıcı oluşturuldu fakat detaylar eklenemedi: " + updateError.message);
-          return;
-        }
       }
 
       setLoginUsername(regUsername);
       setLoginPassword(regPassword);
       setRegName(''); setRegUsername(''); setRegPassword(''); setRegShopName(''); setRegEmail('');
       setAuthState('login');
-      
-      if (regRole === 'owner') {
-        alert("Kayıt başarılı! İşletme kaydınız alındı. Sisteme giriş yapabilirsiniz, admin dükkanınızı tanımladığında paneliniz aktifleşecektir.");
-      } else {
-        alert("Başarılı! Hesabınız oluşturuldu. Şimdi giriş yapabilirsiniz.");
-      }
+      alert("Kayıt başarılı! Giriş yapabilirsiniz.");
     } catch (err: any) {
       setAuthError(err.message || "Bilinmeyen bir hata oluştu.");
     }
@@ -683,7 +664,6 @@ export default function App() {
     if (!newShopLocation) { alert("Lütfen haritadan konum seçin."); return; }
     if (!newShopData.name.trim() || !newShopOwnerUsername.trim()) { alert("Lütfen dükkan adını ve sahibinin kullanıcı adını doldurun."); return; }
     
-    // Find the user ID from username case-insensitively
     const { data: ownerProfile, error: profileErr } = await supabase.from('profiles').select('id').ilike('username', newShopOwnerUsername).maybeSingle();
     
     if (profileErr || !ownerProfile) {
@@ -747,14 +727,49 @@ export default function App() {
     if (reviewsForShop.length === 0 || shopId.includes('osm-')) return;
     const avg = reviewsForShop.reduce((sum, r) => sum + r.star, 0) / reviewsForShop.length;
     
-    // Update local states
     setDynamicBarbers(prev => prev.map(b => b.id === shopId ? { ...b, rating: avg } : b));
     setSystemShops(prev => prev.map(s => s.id === shopId ? { ...s, rating: avg } : s));
     if (ownerShopDb?.id === shopId) setOwnerShopDb({ ...ownerShopDb, rating: avg });
     if (selectedBarber?.id === shopId) setSelectedBarber({ ...selectedBarber, rating: avg });
     
-    // Update Supabase
     await supabase.from('shops').update({ rating: avg }).eq('id', shopId);
+  };
+
+  const handleDeleteRequest = async (reviewId: string, shopId: string, shopName: string, comment: string) => {
+    const req = { reviewId, shopId, shopName, comment };
+    const newReqs = [...deleteRequests, req];
+    setDeleteRequests(newReqs);
+    try { await AsyncStorage.setItem('hopop_delete_requests', JSON.stringify(newReqs)); } catch(e){}
+    showNotification("Silme isteği yöneticiye iletildi.");
+  };
+
+  const approveDeleteRequest = async (reviewId: string, shopId: string) => {
+    const newReqs = deleteRequests.filter(r => r.reviewId !== reviewId);
+    setDeleteRequests(newReqs);
+    try { await AsyncStorage.setItem('hopop_delete_requests', JSON.stringify(newReqs)); } catch(e){}
+    
+    const shopReviews = (globalReviews[shopId] || []).filter(r => r.id !== reviewId);
+    const newGlobalReviews = {...globalReviews, [shopId]: shopReviews};
+    setGlobalReviews(newGlobalReviews);
+    saveGlobalReviewsToStorage(newGlobalReviews);
+    updateAverageRating(shopId, shopReviews);
+    showNotification("Yorum kalıcı olarak silindi.");
+  };
+
+  const rejectDeleteRequest = async (reviewId: string) => {
+    const newReqs = deleteRequests.filter(r => r.reviewId !== reviewId);
+    setDeleteRequests(newReqs);
+    try { await AsyncStorage.setItem('hopop_delete_requests', JSON.stringify(newReqs)); } catch(e){}
+    showNotification("Silme isteği reddedildi.");
+  };
+
+  const deleteReviewDirectly = async (reviewId: string, shopId: string) => {
+    const shopReviews = (globalReviews[shopId] || []).filter(r => r.id !== reviewId);
+    const newGlobalReviews = {...globalReviews, [shopId]: shopReviews};
+    setGlobalReviews(newGlobalReviews);
+    saveGlobalReviewsToStorage(newGlobalReviews);
+    updateAverageRating(shopId, shopReviews);
+    showNotification("Yorum silindi.");
   };
 
   const handleAddExperience = () => {
@@ -793,13 +808,6 @@ export default function App() {
     setNewExpStar(5);
     setShowAddExpModal(false);
     showNotification("Deneyim başarıyla paylaşıldı! 🎉");
-  };
-
-  const formatTime = (seconds: number) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) / 60);
-    const s = seconds % 60;
-    return `${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
   if (loading || !location || !dbLoaded || authLoading) return <View style={styles.centerContainer}><ActivityIndicator size="large" color="#000" /></View>;
@@ -1109,7 +1117,7 @@ export default function App() {
                     <Text style={{color:'#aaa', fontSize:12, marginTop:8, textAlign:'center'}}>Fotoğraf Ekle</Text>
                   </TouchableOpacity>
                 </ScrollView>
-                <TouchableOpacity style={[styles.payBtn, { marginBottom: 20 }]} onPress={async () => {
+                <TouchableOpacity style={[styles.payBtn, { marginBottom: 20 }]} onPress={async () => { 
                    const { error } = await supabase.from('shops').update({ image_url: JSON.stringify(localImages) }).eq('id', ownerShopDb.id);
                    if (!error) { 
                      setOwnerShopDb({...ownerShopDb, image_url: JSON.stringify(localImages)}); 
@@ -1173,6 +1181,39 @@ export default function App() {
                   </View>
                  ))
               )}
+              <View style={[styles.ownerSectionHead, { marginTop: 20 }]}>
+                <Text style={styles.sectionTitle}>MAĞAZA YORUMLARI</Text>
+              </View>
+              {(globalReviews[ownerShopDb.id] || []).length === 0 ? (
+                <Text style={{color:'#aaa', marginBottom: 20}}>Henüz mağazanıza yapılmış bir değerlendirme bulunmuyor.</Text>
+              ) : (
+                <View style={{ marginBottom: 20 }}>
+                  {(globalReviews[ownerShopDb.id] || []).map(r => {
+                    const isDeleteRequested = deleteRequests.some(req => req.reviewId === r.id);
+                    return (
+                      <View key={r.id} style={{ backgroundColor: '#f9f9f9', padding: 15, borderRadius: 12, marginBottom: 10 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                          <Image source={{ uri: r.userAvatar || 'https://i.pravatar.cc/150' }} style={{ width: 30, height: 30, borderRadius: 15, marginRight: 10 }} />
+                          <View>
+                            <Text style={{ fontWeight: 'bold' }}>{r.user}</Text>
+                            <Text style={{ color: '#aaa', fontSize: 10 }}>{r.date}</Text>
+                          </View>
+                          <Text style={{ marginLeft: 'auto', color: '#f39c12' }}>{'⭐'.repeat(r.star)}</Text>
+                        </View>
+                        <Text style={{ color: '#333', marginBottom: 10 }}>{r.comment}</Text>
+                        {r.imageUrl && <Image source={{uri: r.imageUrl}} style={{width: '100%', height: 150, borderRadius: 10, marginBottom: 10}} />}
+                        <TouchableOpacity 
+                          style={{ backgroundColor: isDeleteRequested ? '#ccc' : '#ff4757', padding: 10, borderRadius: 8, alignItems: 'center' }} 
+                          disabled={isDeleteRequested}
+                          onPress={() => handleDeleteRequest(r.id, ownerShopDb.id, ownerShopDb.name, r.comment)}
+                        >
+                          <Text style={{ color: '#fff', fontWeight: 'bold' }}>{isDeleteRequested ? "SİLME İSTEĞİ GÖNDERİLDİ" : "YORUMU SİL (ONAYA GÖNDER)"}</Text>
+                        </TouchableOpacity>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
               <TouchableOpacity style={styles.logoutBtn} onPress={() => { setCurrentUsername(null); setAuthState('login'); }}><Text style={{ color: 'red', fontWeight:'bold', marginBottom:40 }}>Panelden Çıkış</Text></TouchableOpacity>
             </ScrollView>
           )}
@@ -1196,6 +1237,24 @@ export default function App() {
             ))}
           </View>
 
+          <View style={[styles.promoPanel, { backgroundColor: '#ff4757' }]}>
+            <Text style={styles.panelTitle}>YORUM SİLME İSTEKLERİ</Text>
+            {deleteRequests.length === 0 ? <Text style={{color:'#fff', opacity: 0.8}}>Bekleyen silme isteği yok.</Text> : deleteRequests.map(req => (
+              <View key={req.reviewId} style={{backgroundColor:'rgba(255,255,255,0.1)', padding:10, borderRadius:8, marginBottom:10}}>
+                <Text style={{color:'#fff', fontWeight:'bold', marginBottom: 5}}>{req.shopName}</Text>
+                <Text style={{color:'#fff', opacity:0.8, fontSize:12, marginBottom: 10}}>{req.comment}</Text>
+                <View style={{flexDirection:'row', gap: 10}}>
+                  <TouchableOpacity style={{backgroundColor:'#2ed573', padding:8, borderRadius:5, flex:1, alignItems:'center'}} onPress={() => approveDeleteRequest(req.reviewId, req.shopId)}>
+                    <Text style={{color:'#fff', fontSize:12, fontWeight:'bold'}}>ONAYLA (SİL)</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={{backgroundColor:'#ccc', padding:8, borderRadius:5, flex:1, alignItems:'center'}} onPress={() => rejectDeleteRequest(req.reviewId)}>
+                    <Text style={{color:'#333', fontSize:12, fontWeight:'bold'}}>REDDET</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </View>
+
           <Text style={styles.sectionTitle}>YENİ DÜKKAN EKLE</Text>
           <View style={{ height: 350, borderRadius: 15, overflow: 'hidden', marginBottom: 15 }}>
             <AdminMap style={{ flex: 1 }} selectedLocation={newShopLocation} onMapPress={(e: any) => setNewShopLocation(e.nativeEvent.coordinate)} systemShops={systemShops} />
@@ -1209,11 +1268,25 @@ export default function App() {
             <Text style={styles.authPrimaryBtnText}>DÜKKANI SİSTEME EKLE</Text>
           </TouchableOpacity>
 
-          <Text style={[styles.sectionTitle, {marginTop:30}]}>SİSTEMDEKİ DÜKKANLAR</Text>
+          <Text style={[styles.sectionTitle, {marginTop: 30}]}>SİSTEMDEKİ DÜKKANLAR VE YORUMLARI</Text>
           {systemShops.map(shop => (
-             <View key={shop.id} style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', padding:15, backgroundColor:'#f9f9f9', borderRadius:10, marginBottom:10}}>
-               <Text style={{fontWeight:'bold'}}>{shop.name}</Text>
-               <TouchableOpacity onPress={() => handleDeleteShop(shop.id)}><Ionicons name="trash" size={20} color="#ff4757" /></TouchableOpacity>
+             <View key={shop.id} style={{padding:15, backgroundColor:'#f9f9f9', borderRadius:10, marginBottom:10}}>
+               <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom: 10}}>
+                 <Text style={{fontWeight:'bold', fontSize:16}}>{shop.name}</Text>
+                 <TouchableOpacity onPress={() => handleDeleteShop(shop.id)}><Ionicons name="trash" size={20} color="#ff4757" /></TouchableOpacity>
+               </View>
+               <TouchableOpacity style={{backgroundColor:'#3498db', padding:8, borderRadius:5, alignItems:'center', marginBottom: 10}} onPress={() => { setReviewTarget({id: '', shopId: shop.id, barberName: shop.name, date: '', time: '', price: 0, type: '', customerName: '', status: 'active'}); setReviewData({star: 5, comment: '', imageUrl: ''}); setShowAddExperienceModal(true); }}>
+                  <Text style={{color:'#fff', fontSize:12, fontWeight:'bold'}}>+ BU DÜKKANA YORUM EKLE</Text>
+               </TouchableOpacity>
+               {(globalReviews[shop.id] || []).length === 0 ? <Text style={{color:'#aaa', fontSize: 12}}>Yorum yok.</Text> : (globalReviews[shop.id] || []).map(r => (
+                  <View key={r.id} style={{backgroundColor:'#fff', padding:10, borderRadius:8, marginBottom:8, borderWidth: 1, borderColor: '#eee'}}>
+                    <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center'}}>
+                      <Text style={{fontWeight:'bold', fontSize: 12}}>{r.user} • {'⭐'.repeat(r.star)}</Text>
+                      <TouchableOpacity onPress={() => deleteReviewDirectly(r.id, shop.id)}><Ionicons name="trash" size={16} color="#ff4757" /></TouchableOpacity>
+                    </View>
+                    <Text style={{color:'#666', fontSize: 11, marginTop: 4}}>{r.comment}</Text>
+                  </View>
+               ))}
              </View>
           ))}
           
@@ -1225,8 +1298,6 @@ export default function App() {
       {selectedBarber && (
         <Modal visible={!!selectedBarber} animationType="slide">
           <View style={{ flex: 1, backgroundColor: '#fff' }} onLayout={(e) => {
-             // For web, if it's rendered inside a restricted container, get that width.
-             // If not, Dimensions works fine. Using layout width is safest.
              if(!selectedBarber.modalWidth) setSelectedBarber({...selectedBarber, modalWidth: e.nativeEvent.layout.width});
           }}>
             <View style={{ height: 250, position: 'relative' }}>
@@ -1273,10 +1344,35 @@ export default function App() {
                 ))}
               </ScrollView>
 
-              {globalReviews[selectedBarber.id] && globalReviews[selectedBarber.id].length > 0 && <><Text style={styles.sectionTitle}>YORUMLAR ({globalReviews[selectedBarber.id].length})</Text>
-              {globalReviews[selectedBarber.id].map(r => (<View key={r.id} style={styles.reviewItem}><View style={{flexDirection:'row', alignItems:'center', marginBottom:8}}><Image source={{uri: r.userAvatar || 'https://picsum.photos/100'}} style={{width: 30, height: 30, borderRadius: 15, marginRight: 10}}/><View><Text style={{ fontWeight: 'bold' }}>{r.user}</Text><Text style={{color:'#f39c12', fontSize:12}}>{'⭐'.repeat(r.star)}</Text></View></View>{r.imageUrl ? <Image source={{uri: r.imageUrl}} style={{width: '100%', height: 150, borderRadius: 10, marginTop: 5, marginBottom: 10}} />: null}<Text style={{ color: '#666' }}>{r.comment}</Text></View>))}</>}
+              <TouchableOpacity style={[styles.payBtn, { marginBottom: 20 }]} onPress={() => {
+                if (userRole === 'customer') {
+                  handlePayment();
+                } else {
+                  showNotification("Sadece müşteriler randevu alabilir.");
+                }
+              }}>
+                <Text style={styles.payBtnText}>RANDEVU AL VE ÖDEMEYE GEÇ (₺350)</Text>
+              </TouchableOpacity>
 
-              <TouchableOpacity style={styles.bookBtn} onPress={handlePayment}><Text style={styles.bookBtnText}>ÖDEMEYE GEÇ (350 TL)</Text></TouchableOpacity>
+              <Text style={[styles.sectionTitle, { marginTop: 20 }]}>MÜŞTERİ DENEYİMLERİ</Text>
+              {(globalReviews[selectedBarber.id] || []).length === 0 ? <Text style={{color:'#aaa', marginBottom: 20}}>Henüz değerlendirme yok.</Text> : (
+                <View style={{ marginBottom: 20 }}>
+                  {(globalReviews[selectedBarber.id] || []).map(r => (
+                    <View key={r.id} style={{ backgroundColor: '#f9f9f9', padding: 15, borderRadius: 12, marginBottom: 10 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+                        <Image source={{ uri: r.userAvatar || 'https://i.pravatar.cc/150' }} style={{ width: 30, height: 30, borderRadius: 15, marginRight: 10 }} />
+                        <View>
+                          <Text style={{ fontWeight: 'bold' }}>{r.user}</Text>
+                          <Text style={{ color: '#aaa', fontSize: 10 }}>{r.date}</Text>
+                        </View>
+                        <Text style={{ marginLeft: 'auto', color: '#f39c12' }}>{'⭐'.repeat(r.star)}</Text>
+                      </View>
+                      <Text style={{ color: '#333' }}>{r.comment}</Text>
+                      {r.imageUrl && <Image source={{uri: r.imageUrl}} style={{width: '100%', height: 150, borderRadius: 10, marginTop: 10}} />}
+                    </View>
+                  ))}
+                </View>
+              )}
             </ScrollView>
           </View>
         </Modal>
