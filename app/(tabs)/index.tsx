@@ -164,6 +164,7 @@ interface Barber {
   category?: string;
   images: string[];
   imageUrl: string;
+  modalWidth?: number;
   views: number;
   reviews: Review[];
   distance?: number;
@@ -315,12 +316,23 @@ export default function App() {
     checkSession();
   }, []);
 
-  const updateUserInDb = useCallback((username: string, updates: Partial<RegisteredUser>) => {
+  const updateUserInDb = useCallback(async (username: string, updates: Partial<RegisteredUser>) => {
     setRegisteredUsers(prev => {
       const updated = prev.map(u => u.username === username ? { ...u, ...updates } : u);
       saveUsersToStorage(updated);
       return updated;
     });
+
+    // Also push profile updates to Supabase
+    if (updates.name || updates.avatar) {
+       const profileUpdates: any = {};
+       if (updates.name) profileUpdates.full_name = updates.name;
+       if (updates.avatar) profileUpdates.avatar_url = updates.avatar;
+       const { data: { user: currentUser } } = await supabase.auth.getUser();
+       if (currentUser) {
+          await supabase.from('profiles').update(profileUpdates).eq('id', currentUser.id);
+       }
+    }
   }, [saveUsersToStorage]);
 
   const pickImage = async (setter: (uri: string) => void, aspect: [number, number] = [1, 1]) => {
@@ -476,9 +488,14 @@ export default function App() {
 
   const handleLogin = async (overrideUser?: string, overridePass?: string) => {
     try {
+      setAuthLoading(true);
       setAuthError('');
       const u = overrideUser || loginUsername;
       const p = overridePass || loginPassword;
+      
+      const storedUsers = await AsyncStorage.getItem('hopop_users');
+      const latestUsers: RegisteredUser[] = storedUsers ? JSON.parse(storedUsers) : registeredUsers;
+
       if (!u.trim() || !p.trim()) { setAuthError("Lütfen tüm alanları doldurun."); return; }
       
       const { data: profile, error: profileError } = await supabase
@@ -524,17 +541,26 @@ export default function App() {
       }
     }
 
-    const found = registeredUsers.find(userObj => userObj.username.toLowerCase() === u.toLowerCase()) || {
-      name: profile.full_name || u, 
-      username: u, 
-      password: p, 
-      role: frontendRole, 
-      avatar: profile.avatar_url || 'https://picsum.photos/id/64/200', 
-      balance: 500, 
-      experiences: [], 
-      appointments: [],
-      shopName: undefined
-    };
+    const existingIndex = latestUsers.findIndex(userObj => userObj.username.toLowerCase() === u.toLowerCase());
+    let found;
+    if (existingIndex !== -1) {
+      found = latestUsers[existingIndex];
+    } else {
+      found = {
+        name: profile.full_name || u, 
+        username: u, 
+        password: p, 
+        role: frontendRole, 
+        avatar: profile.avatar_url || 'https://picsum.photos/id/64/200', 
+        balance: 500, 
+        experiences: [], 
+        appointments: [],
+        shopName: undefined
+      };
+      const updatedUsers = [...latestUsers, found];
+      setRegisteredUsers(updatedUsers);
+      saveUsersToStorage(updatedUsers);
+    }
     
     // Fetch real appointments
     let fetchedApps: any[] = [];
@@ -1157,11 +1183,15 @@ export default function App() {
       {/* MODALLAR */}
       {selectedBarber && (
         <Modal visible={!!selectedBarber} animationType="slide">
-          <View style={{ flex: 1, backgroundColor: '#fff' }}>
+          <View style={{ flex: 1, backgroundColor: '#fff' }} onLayout={(e) => {
+             // For web, if it's rendered inside a restricted container, get that width.
+             // If not, Dimensions works fine. Using layout width is safest.
+             if(!selectedBarber.modalWidth) setSelectedBarber({...selectedBarber, modalWidth: e.nativeEvent.layout.width});
+          }}>
             <View style={{ height: 250 }}>
               <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
                 {selectedBarber.images.map((img: string, idx: number) => (
-                  <Image key={idx} source={{ uri: img }} style={{ width: Dimensions.get('window').width, height: 250, resizeMode: 'cover' }} />
+                  <Image key={idx} source={{ uri: img }} style={{ width: selectedBarber.modalWidth || Dimensions.get('window').width, height: 250, resizeMode: 'contain', backgroundColor: '#000' }} />
                 ))}
               </ScrollView>
               <TouchableOpacity style={styles.closeBtn} onPress={() => setSelectedBarber(null)}><Ionicons name="close" size={24} color="white" /></TouchableOpacity>
