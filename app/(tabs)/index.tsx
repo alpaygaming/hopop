@@ -623,11 +623,15 @@ export default function App() {
   };
 
   const handleRequestPromotion = async () => {
-    if (ownerShop.balance < 100) return Alert.alert("Hata", "Yetersiz bakiye.");
+    if (user.balance < 100) return Alert.alert("Hata", "Yetersiz bakiye.");
     if (!ownerShopDb) return;
     
     const { error } = await supabase.from('shops').update({ promotion_status: 'pending' }).eq('id', ownerShopDb.id);
     if (error) { alert("Hata: " + error.message); return; }
+    
+    const newBalance = user.balance - 100;
+    setUser(prev => ({ ...prev, balance: newBalance }));
+    if(currentUsername) updateUserInDb(currentUsername, { balance: newBalance });
     
     showNotification("Öne Çıkarma isteğiniz Admin'e gönderildi!");
     setOwnerShopDb({ ...ownerShopDb, promotion_status: 'pending' });
@@ -741,8 +745,8 @@ export default function App() {
           {activeTab === 'map' && (!selectedCategory ? (
             <View style={styles.categoryScreen}>
               <Text style={styles.mainTitle}>Keşfet</Text>
-              <TouchableOpacity style={styles.allMapCard} onPress={() => setSelectedCategory('all')}><Text style={styles.allMapTitle}>TÜMÜNÜ KEŞFET</Text></TouchableOpacity>
-              <View style={styles.categoryGrid}>{CATEGORIES_DATA.map(cat => (<TouchableOpacity key={cat.id} style={styles.categoryCard} onPress={() => setSelectedCategory(cat.id)}><FontAwesome5 name={cat.icon as any} size={24} color="#000" /><Text style={styles.catName}>{cat.name}</Text></TouchableOpacity>))}</View>
+              <TouchableOpacity style={styles.allMapCard} onPress={() => { setSelectedCategory('all'); }}><Text style={styles.allMapTitle}>TÜMÜNÜ KEŞFET</Text></TouchableOpacity>
+              <View style={styles.categoryGrid}>{CATEGORIES_DATA.map(cat => (<TouchableOpacity key={cat.id} style={styles.categoryCard} onPress={() => { setSelectedCategory(cat.id); }}><FontAwesome5 name={cat.icon as any} size={24} color="#000" /><Text style={styles.catName}>{cat.name}</Text></TouchableOpacity>))}</View>
             </View>
           ) : (
             <View style={{ flex: 1 }}>
@@ -761,7 +765,14 @@ export default function App() {
 
           {activeTab === 'shops' && (
             <View style={styles.tabPadding}>
-              <Text style={styles.tabTitle}>MAĞAZALAR</Text>
+              <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+                <Text style={styles.tabTitle}>MAĞAZALAR</Text>
+                {dynamicBarbers.length === 0 && (
+                  <TouchableOpacity onPress={() => setSelectedCategory('all')} style={{backgroundColor: '#000', padding: 8, borderRadius: 8}}>
+                    <Text style={{color: '#fff', fontSize: 12, fontWeight: 'bold'}}>DÜKKANLARI YÜKLE</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
               
               <View style={{ marginBottom: 15, paddingBottom: 15, minHeight: 50 }}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
@@ -912,8 +923,11 @@ export default function App() {
           ) : (
             <View style={{ flex: 1 }}>
               <View style={styles.ownerTopHeader}>
-                <View><Text style={styles.ownerShopName}>{ownerShop.name}</Text><Text style={{ color: '#aaa' }}>Kategori: {ownerShopDb.category.toUpperCase()}</Text></View>
-                <View style={styles.viewBadge}><Ionicons name="eye" size={14} color="#7d5fff" /><Text style={styles.viewText}>{ownerShop.views}</Text></View>
+                <View><Text style={styles.ownerShopName}>{ownerShop.name}</Text><Text style={{ color: '#aaa' }}>Kategori: {ownerShopDb.category?.toUpperCase()}</Text></View>
+                <View style={{flexDirection: 'row', gap: 10}}>
+                  <View style={styles.viewBadge}><Ionicons name="eye" size={14} color="#7d5fff" /><Text style={styles.viewText}>{ownerShop.views}</Text></View>
+                  <View style={styles.viewBadge}><Ionicons name="wallet" size={14} color="#2ed573" /><Text style={styles.viewText}>{user.balance} TL</Text></View>
+                </View>
               </View>
 
               <View style={styles.promoPanel}>
@@ -946,7 +960,7 @@ export default function App() {
                    if (!error) { setOwnerShopDb({...ownerShopDb, image_url: uri}); showNotification("Mağaza fotoğrafı güncellendi!"); }
                 }, [16, 9])}>
                   {ownerShopDb.image_url ? (
-                    <Image source={{uri: ownerShopDb.image_url}} style={{ width: '100%', height: 150, borderRadius: 12 }} />
+                    <Image source={{uri: ownerShopDb.image_url}} style={{ width: '100%', height: 120, borderRadius: 12, resizeMode: 'cover' }} />
                   ) : (
                     <View style={styles.expPickerPlaceholder}>
                       <Ionicons name="image-outline" size={40} color="#ccc" />
@@ -974,7 +988,22 @@ export default function App() {
 
               <View style={styles.ownerSectionHead}>
                 <Text style={styles.sectionTitle}>GELEN RANDEVULAR</Text>
-                <TouchableOpacity onPress={() => setShowManualAddModal(true)}><Text style={styles.addManualText}>+ ELLE EKLE</Text></TouchableOpacity>
+                <View style={{flexDirection:'row', gap:10, alignItems: 'center'}}>
+                  <TouchableOpacity onPress={async () => {
+                     const { data: oApps } = await supabase.from('appointments').select('*, profiles(full_name)').eq('shop_id', ownerShopDb.id).order('created_at', { ascending: false });
+                     setOwnerAppointments((oApps || []).map((a: any) => ({
+                        id: a.id, shopId: a.shop_id, barberName: ownerShopDb.name,
+                        customerName: a.profiles?.full_name || 'Müşteri',
+                        date: new Date(a.appointment_date).toLocaleDateString(),
+                        time: new Date(a.appointment_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                        price: a.price, type: ownerShopDb.category, status: a.status
+                     })));
+                     showNotification("Randevular yenilendi!");
+                  }}>
+                    <Ionicons name="refresh" size={20} color="#000" />
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setShowManualAddModal(true)}><Text style={styles.addManualText}>+ ELLE EKLE</Text></TouchableOpacity>
+                </View>
               </View>
               <FlatList data={ownerAppointments.filter(a => a.status === 'pending' || a.status === 'confirmed')} keyExtractor={item => item.id} renderItem={({ item }) => (
                 <View style={styles.ownerAppCard}>
