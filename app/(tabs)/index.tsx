@@ -772,44 +772,6 @@ export default function App() {
     showNotification("Yorum silindi.");
   };
 
-  const handleAddExperience = () => {
-    if (!newExpComment.trim()) { showNotification("Lütfen bir açıklama yazın."); return; }
-    if (!newExpShopName.trim() || !newExpShopId || !newExpAppId) { showNotification("Lütfen değerlendireceğiniz seansı seçin."); return; }
-    const newExp: Review = {
-      id: 'exp' + Date.now(),
-      imageUrl: newExpImage || undefined,
-      shopId: newExpShopId,
-      shopName: newExpShopName,
-      appointmentId: newExpAppId,
-      comment: newExpComment,
-      star: newExpStar,
-      date: new Date().toLocaleDateString(),
-      user: user.name,
-      userAvatar: user.avatar
-    };
-    
-    const shopReviews = [...(globalReviews[newExpShopId] || []), newExp];
-    const newGlobalReviews = {...globalReviews, [newExpShopId]: shopReviews};
-    setGlobalReviews(newGlobalReviews);
-    saveGlobalReviewsToStorage(newGlobalReviews);
-    
-    updateAverageRating(newExpShopId, shopReviews);
-
-    const updatedExps = [newExp, ...userExperiences];
-    setUserExperiences(updatedExps);
-    if (currentUsername) {
-      updateUserInDb(currentUsername, { experiences: updatedExps });
-    }
-    setNewExpShopName('');
-    setNewExpShopId('');
-    setNewExpAppId('');
-    setNewExpComment('');
-    setNewExpImage('');
-    setNewExpStar(5);
-    setShowAddExpModal(false);
-    showNotification("Deneyim başarıyla paylaşıldı! 🎉");
-  };
-
   if (loading || !location || !dbLoaded || authLoading) return <View style={styles.centerContainer}><ActivityIndicator size="large" color="#000" /></View>;
 
   if (authState === 'login') {
@@ -1010,30 +972,34 @@ export default function App() {
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, marginTop: 15 }}>
                 <Text style={[styles.sectionTitle, { marginVertical: 0 }]}>GEÇMİŞ RANDEVULARIM</Text>
               </View>
-              {appointments.filter(a => a.status === 'past').length === 0 && <Text style={{ color: '#aaa', marginBottom: 20 }}>Değerlendirilecek randevu yok.</Text>}
-              {appointments.filter(a => a.status === 'past').map(app => (
-                <View key={app.id} style={{ backgroundColor: '#f9f9f9', padding: 15, borderRadius: 12, marginBottom: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <View>
-                    <Text style={{ fontWeight: 'bold' }}>{app.barberName}</Text>
-                    <Text style={{ color: '#666', fontSize: 12 }}>{app.date} • {app.time}</Text>
+              {appointments.filter(a => a.status === 'past' || a.status === 'confirmed').length === 0 && <Text style={{ color: '#aaa', marginBottom: 20 }}>Değerlendirilecek randevu yok.</Text>}
+              {appointments.filter(a => a.status === 'past' || a.status === 'confirmed').map(app => {
+                const isReviewed = userExperiences.some(exp => exp.appointmentId === app.id);
+                return (
+                  <View key={app.id} style={{ backgroundColor: '#f9f9f9', padding: 15, borderRadius: 12, marginBottom: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View>
+                      <Text style={{ fontWeight: 'bold' }}>{app.barberName}</Text>
+                      <Text style={{ color: '#666', fontSize: 12 }}>{app.date} • {app.time}</Text>
+                    </View>
+                    {isReviewed ? (
+                      <Text style={{ color: '#2ed573', fontSize: 10, fontWeight: 'bold' }}>DEĞERLENDİRİLDİ</Text>
+                    ) : (
+                      <TouchableOpacity style={{ backgroundColor: '#000', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }} onPress={() => { setReviewTarget(app); setReviewData({ star: 5, comment: '', imageUrl: '' }); setShowAddExperienceModal(true); }}>
+                        <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>DEĞERLENDİR</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
-                  <TouchableOpacity style={{ backgroundColor: '#000', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }} onPress={() => { setReviewTarget(app); setReviewData({ star: 5, comment: '', imageUrl: '' }); setShowAddExperienceModal(true); }}>
-                    <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>DEĞERLENDİR</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
+                );
+              })}
 
               <View style={styles.ownerSectionHead}>
                 <Text style={styles.sectionTitle}>DENEYİMLERİM (YORUMLARIN)</Text>
-                <TouchableOpacity onPress={() => setShowAddExpModal(true)}>
-                  <Text style={styles.addManualText}>+ DENEYİM EKLE</Text>
-                </TouchableOpacity>
               </View>
               
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 {userExperiences.map(exp => (
                   <View key={exp.id} style={styles.expCard}>
-                    {exp.imageUrl ? <Image source={{ uri: exp.imageUrl }} style={styles.expImg} /> : null}
+                    {exp.imageUrl ? <Image source={{ uri: exp.imageUrl }} style={[styles.expImg, { resizeMode: 'contain' }]} /> : null}
                     <Text style={{ fontWeight: 'bold', fontSize: 13, marginTop: 8 }}>{exp.shopName || (exp.shopId.includes('osm-') ? "Dükkan" : exp.shopId)}</Text>
                     <Text style={{ color: '#f39c12', fontSize: 12 }}>{'⭐'.repeat(exp.star)}</Text>
                     <Text style={styles.expText} numberOfLines={3}>{exp.comment}</Text>
@@ -1201,7 +1167,7 @@ export default function App() {
                           <Text style={{ marginLeft: 'auto', color: '#f39c12' }}>{'⭐'.repeat(r.star)}</Text>
                         </View>
                         <Text style={{ color: '#333', marginBottom: 10 }}>{r.comment}</Text>
-                        {r.imageUrl && <Image source={{uri: r.imageUrl}} style={{width: '100%', height: 150, borderRadius: 10, marginBottom: 10}} />}
+                        {r.imageUrl && <Image source={{uri: r.imageUrl}} style={{width: '100%', height: 200, resizeMode: 'contain', borderRadius: 10, marginBottom: 10}} />}
                         <TouchableOpacity 
                           style={{ backgroundColor: isDeleteRequested ? '#ccc' : '#ff4757', padding: 10, borderRadius: 8, alignItems: 'center' }} 
                           disabled={isDeleteRequested}
@@ -1368,7 +1334,7 @@ export default function App() {
                         <Text style={{ marginLeft: 'auto', color: '#f39c12' }}>{'⭐'.repeat(r.star)}</Text>
                       </View>
                       <Text style={{ color: '#333' }}>{r.comment}</Text>
-                      {r.imageUrl && <Image source={{uri: r.imageUrl}} style={{width: '100%', height: 150, borderRadius: 10, marginTop: 10}} />}
+                      {r.imageUrl && <Image source={{uri: r.imageUrl}} style={{width: '100%', height: 200, resizeMode: 'contain', borderRadius: 10, marginTop: 10}} />}
                     </View>
                   ))}
                 </View>
@@ -1439,17 +1405,15 @@ export default function App() {
                     const newRev: Review = { id: Math.random().toString(), user: user.name, userAvatar: user.avatar, shopId: reviewTarget.shopId, shopName: reviewTarget.barberName, appointmentId: reviewTarget.id, comment: reviewData.comment || 'Puanlandı.', star: reviewData.star, imageUrl: reviewData.imageUrl, date: new Date().toLocaleDateString() };
                     const shopReviews = [...(globalReviews[reviewTarget.shopId] || []), newRev];
                     const newGlobalReviews = {...globalReviews, [reviewTarget.shopId]: shopReviews};
-                    const newApps = appointments.filter(a => a.id !== reviewTarget.id);
                     const newExps = [newRev, ...userExperiences];
                     
                     setGlobalReviews(newGlobalReviews);
                     setUserExperiences(newExps);
-                    setAppointments(newApps);
                     
                     updateAverageRating(reviewTarget.shopId, shopReviews);
                     
                     if (currentUsername) {
-                      updateUserInDb(currentUsername, { experiences: newExps, appointments: newApps });
+                      updateUserInDb(currentUsername, { experiences: newExps });
                     }
                     saveGlobalReviewsToStorage(newGlobalReviews);
                   }
@@ -1460,53 +1424,6 @@ export default function App() {
             </View>
           </KeyboardAvoidingView>
       </Modal>
-
-      {/* Manuel Deneyim Ekleme Modal */}
-      <Modal visible={showAddExpModal} transparent animationType="slide">
-          <View style={styles.modalOverlay}>
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-              <View style={styles.paymentCard}>
-                <Text style={styles.modalTitle}>DENEYİM EKLE</Text>
-                <TouchableOpacity style={styles.expImagePicker} onPress={() => pickImage(uri => setNewExpImage(uri), [4, 3])}>
-                  {newExpImage ? (
-                    <Image source={{uri: newExpImage}} style={styles.expPickerImg} />
-                  ) : (
-                    <View style={styles.expPickerPlaceholder}>
-                      <Ionicons name="image-outline" size={40} color="#ccc" />
-                      <Text style={{color:'#aaa', fontSize:12, marginTop:8}}>Fotoğraf Seç</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-                <Text style={{ fontWeight:'bold', marginBottom:5 }}>Hangi seansı değerlendiriyorsunuz?</Text>
-                {appointments.length === 0 ? <Text style={{color:'#aaa', marginBottom:15}}>Hiç randevunuz yok.</Text> : (
-                  <ScrollView style={{maxHeight: 120, marginBottom: 15, width:'100%'}}>
-                    {appointments.map(app => (
-                       <TouchableOpacity key={app.id} style={{padding:10, backgroundColor: newExpAppId === app.id ? '#ddd' : '#f9f9f9', marginBottom:5, borderRadius:8, borderWidth: newExpAppId === app.id ? 2 : 0, borderColor: '#000'}} onPress={() => { setNewExpAppId(app.id); setNewExpShopId(app.shopId); setNewExpShopName(app.barberName); }}>
-                          <Text style={{fontWeight:'bold'}}>{app.barberName}</Text>
-                          <Text style={{fontSize:12, color:'#666'}}>{app.date} • {app.time}</Text>
-                       </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                )}
-                <View style={{flexDirection: 'row', justifyContent: 'center', marginBottom: 15}}>
-                  {[1,2,3,4,5].map(s => (
-                    <TouchableOpacity key={s} onPress={() => setNewExpStar(s)}>
-                      <Text style={{fontSize: 30, color: newExpStar >= s ? '#f39c12' : '#ccc', marginHorizontal: 5}}>★</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                <TextInput style={[styles.authInput, {height:80}]} placeholderTextColor="#555" placeholder="Deneyiminizi anlatın..." value={newExpComment} onChangeText={setNewExpComment} multiline />
-                <TouchableOpacity style={styles.payBtn} onPress={handleAddExperience}>
-                  <Text style={styles.payBtnText}>PAYLAŞ</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={{marginTop:15, alignItems:'center'}} onPress={() => { setShowAddExpModal(false); setNewExpImage(''); setNewExpShopName(''); setNewExpShopId(''); setNewExpAppId(''); setNewExpComment(''); setNewExpStar(5); }}>
-                  <Text style={{color:'#aaa'}}>İptal</Text>
-                </TouchableOpacity>
-              </View>
-            </KeyboardAvoidingView>
-          </View>
-      </Modal>
-
       <View style={styles.navBar}>
         {userRole === 'admin' ? (
           <>
