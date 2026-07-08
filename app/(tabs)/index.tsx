@@ -921,7 +921,7 @@ export default function App() {
               </TouchableOpacity>
             </View>
           ) : (
-            <View style={{ flex: 1 }}>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
               <View style={styles.ownerTopHeader}>
                 <View><Text style={styles.ownerShopName}>{ownerShop.name}</Text><Text style={{ color: '#aaa' }}>Kategori: {ownerShopDb.category?.toUpperCase()}</Text></View>
                 <View style={{flexDirection: 'row', gap: 10}}>
@@ -1005,19 +1005,23 @@ export default function App() {
                   <TouchableOpacity onPress={() => setShowManualAddModal(true)}><Text style={styles.addManualText}>+ ELLE EKLE</Text></TouchableOpacity>
                 </View>
               </View>
-              <FlatList data={ownerAppointments.filter(a => a.status === 'pending' || a.status === 'confirmed')} keyExtractor={item => item.id} renderItem={({ item }) => (
-                <View style={styles.ownerAppCard}>
-                  <View>
-                    <Text style={{ fontWeight: 'bold' }}>{item.customerName}</Text>
-                    <Text style={{ color: '#aaa', fontSize: 12 }}>{item.date} • {item.time}</Text>
+              {ownerAppointments.filter(a => a.status === 'pending' || a.status === 'confirmed').length === 0 ? (
+                 <Text style={{ color: '#aaa', textAlign: 'center', marginVertical: 20 }}>Randevu yok.</Text>
+              ) : (
+                 ownerAppointments.filter(a => a.status === 'pending' || a.status === 'confirmed').map(item => (
+                  <View key={item.id} style={styles.ownerAppCard}>
+                    <View>
+                      <Text style={{ fontWeight: 'bold' }}>{item.customerName}</Text>
+                      <Text style={{ color: '#aaa', fontSize: 12 }}>{item.date} • {item.time}</Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                       {item.status === 'confirmed' ? <Ionicons name="checkmark-circle" size={24} color="#2ed573" /> : <Text style={{color:'#f39c12', fontWeight:'bold', fontSize:12}}>BEKLİYOR (Ödendi)</Text>}
+                    </View>
                   </View>
-                  <View style={{ alignItems: 'flex-end' }}>
-                     {item.status === 'confirmed' ? <Ionicons name="checkmark-circle" size={24} color="#2ed573" /> : <Text style={{color:'#f39c12', fontWeight:'bold', fontSize:12}}>BEKLİYOR (Ödendi)</Text>}
-                  </View>
-                </View>
-              )} ListEmptyComponent={<Text style={{ color: '#aaa', textAlign: 'center', marginVertical: 20 }}>Randevu yok.</Text>} />
+                 ))
+              )}
               <TouchableOpacity style={styles.logoutBtn} onPress={() => { setCurrentUsername(null); setAuthState('login'); }}><Text style={{ color: 'red', fontWeight:'bold', marginBottom:40 }}>Panelden Çıkış</Text></TouchableOpacity>
-            </View>
+            </ScrollView>
           )}
         </View>
       )}
