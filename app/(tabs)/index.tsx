@@ -266,6 +266,8 @@ export default function App() {
   const [authLoading, setAuthLoading] = useState(true);
   const [localImages, setLocalImages] = useState<string[]>([]);
   const [modalImageIndex, setModalImageIndex] = useState(0);
+  const [topUpAmount, setTopUpAmount] = useState('');
+  const [deleteRequests, setDeleteRequests] = useState<{reviewId: string, shopId: string, shopName: string, comment: string}[]>([]);
   const [regName, setRegName] = useState('');
   const [regUsername, setRegUsername] = useState('');
   const [regEmail, setRegEmail] = useState('');
@@ -291,8 +293,15 @@ export default function App() {
       else await saveUsersToStorage(DEFAULT_USERS);
       setRegisteredUsers(loadedUsers);
 
-      const rData = await AsyncStorage.getItem('hopop_global_reviews');
-      if (rData) setGlobalReviews(JSON.parse(rData));
+      const loadGlobalReviewsFromStorage = async () => {
+        try {
+          const rData = await AsyncStorage.getItem('hopop_reviews');
+          if (rData) setGlobalReviews(JSON.parse(rData));
+          
+          const reqData = await AsyncStorage.getItem('hopop_delete_requests');
+          if (reqData) setDeleteRequests(JSON.parse(reqData));
+        } catch (e) {}
+      };
 
     } catch (e) {
       console.log('Load error:', e);
@@ -1273,7 +1282,7 @@ export default function App() {
         </Modal>
       )}
 
-      <Modal visible={showTopUpModal} transparent animationType="fade"><View style={styles.modalOverlay}><View style={styles.paymentCard}><Text style={styles.modalTitle}>BAKİYE YÜKLE</Text><TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Yüklenecek Tutar" keyboardType="numeric" /><View style={{flexDirection:'row', gap:10}}><TouchableOpacity style={[styles.payBtn, {backgroundColor: '#ccc', flex:1}]} onPress={() => setShowTopUpModal(false)}><Text style={styles.payBtnText}>İPTAL</Text></TouchableOpacity><TouchableOpacity style={[styles.payBtn, {flex: 1}]} onPress={() => { const newB = user.balance + 100; setUser({ ...user, balance: newB }); if(currentUsername) updateUserInDb(currentUsername, { balance: newB }); setShowTopUpModal(false); showNotification("100 TL Yüklendi!"); }}><Text style={styles.payBtnText}>YÜKLE</Text></TouchableOpacity></View></View></View></Modal>
+      <Modal visible={showTopUpModal} transparent animationType="fade"><View style={styles.modalOverlay}><View style={styles.paymentCard}><Text style={styles.modalTitle}>BAKİYE YÜKLE</Text><TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Yüklenecek Tutar" keyboardType="numeric" value={topUpAmount} onChangeText={setTopUpAmount} /><View style={{flexDirection:'row', gap:10}}><TouchableOpacity style={[styles.payBtn, {backgroundColor: '#ccc', flex:1}]} onPress={() => setShowTopUpModal(false)}><Text style={styles.payBtnText}>İPTAL</Text></TouchableOpacity><TouchableOpacity style={[styles.payBtn, {flex: 1}]} onPress={() => { const amt = parseFloat(topUpAmount) || 100; const newB = user.balance + amt; setUser({ ...user, balance: newB }); if(currentUsername) updateUserInDb(currentUsername, { balance: newB }); setShowTopUpModal(false); setTopUpAmount(''); showNotification(`${amt} TL Yüklendi!`); }}><Text style={styles.payBtnText}>YÜKLE</Text></TouchableOpacity></View></View></View></Modal>
 
       <Modal visible={showManualAddModal} transparent animationType="slide"><View style={styles.modalOverlay}><View style={styles.paymentCard}><Text style={styles.modalTitle}>MANUEL RANDEVU</Text><TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Müşteri Adı" /><TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Saat (Örn: 10:30)" /><View style={{flexDirection:'row', gap:10}}><TouchableOpacity style={[styles.payBtn, {backgroundColor: '#ccc', flex:1}]} onPress={() => setShowManualAddModal(false)}><Text style={styles.payBtnText}>İPTAL</Text></TouchableOpacity><TouchableOpacity style={[styles.payBtn, {flex:1}]} onPress={() => { setOwnerAppointments([...ownerAppointments, { id: 'm1', shopId: 'osm-1', barberName: '', date: 'Bugün', time: '10:30', price: 0, type: '', customerName: 'Dükkan Müşterisi', status: 'active' }]); setShowManualAddModal(false); }}><Text style={styles.payBtnText}>KAYDET</Text></TouchableOpacity></View></View></View></Modal>
 
