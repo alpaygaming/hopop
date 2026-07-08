@@ -1,7 +1,7 @@
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Animated, FlatList, Image, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Keyboard, TouchableWithoutFeedback, KeyboardAvoidingView } from 'react-native';
+import { ActivityIndicator, Alert, Animated, FlatList, Image, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, Keyboard, TouchableWithoutFeedback, KeyboardAvoidingView, Dimensions } from 'react-native';
 import AppMap from '../../components/AppMap';
 import AdminMap from '../../components/AdminMap';
 import * as ImagePicker from 'expo-image-picker';
@@ -18,6 +18,15 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
   const a = Math.sin(dp/2) * Math.sin(dp/2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl/2) * Math.sin(dl/2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   return Math.floor(R * c);
+};
+
+const getShopImages = (image_url: string | null | undefined): string[] => {
+  if (!image_url) return [];
+  try {
+    const parsed = JSON.parse(image_url);
+    if (Array.isArray(parsed)) return parsed;
+  } catch (e) {}
+  return [image_url];
 };
 
 const getOverpassQuery = (lat: number, lon: number, category: string): string => {
@@ -153,6 +162,7 @@ interface Barber {
   rating: number;
   type: string;
   category?: string;
+  images: string[];
   imageUrl: string;
   views: number;
   reviews: Review[];
@@ -247,6 +257,8 @@ export default function App() {
   const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>(DEFAULT_USERS);
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
   const [regName, setRegName] = useState('');
   const [regUsername, setRegUsername] = useState('');
   const [regEmail, setRegEmail] = useState('');
@@ -279,6 +291,27 @@ export default function App() {
       console.log('Load error:', e);
       setRegisteredUsers(DEFAULT_USERS);
     }
+  }, []);
+
+  useEffect(() => {
+    loadDbFromStorage();
+  }, []);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const savedSession = await AsyncStorage.getItem('hopop_session');
+        if (savedSession) {
+          const { username, password } = JSON.parse(savedSession);
+          setLoginUsername(username);
+          setLoginPassword(password);
+          setRememberMe(true);
+          await handleLogin(username, password);
+        }
+      } catch (e) {}
+      setAuthLoading(false);
+    };
+    checkSession();
   }, []);
 
   const updateUserInDb = useCallback((username: string, updates: Partial<RegisteredUser>) => {
@@ -355,7 +388,8 @@ export default function App() {
           longitude: shop.longitude,
           rating: shop.rating || 0,
           type: shop.category,
-          imageUrl: shop.image_url || `https://picsum.photos/seed/${shop.id}/400/300`,
+          images: shop.image_url ? getShopImages(shop.image_url) : [`https://picsum.photos/seed/${shop.id}/400/300`],
+          imageUrl: shop.image_url ? getShopImages(shop.image_url)[0] : `https://picsum.photos/seed/${shop.id}/400/300`,
           views: 0,
           reviews: globalReviews[shop.id] || [],
           address: shop.address || '',
@@ -436,15 +470,17 @@ export default function App() {
     showNotification("Ödeme Alındı! Randevularım kısmından onaylayın ✅");
   };
 
-  const handleLogin = async () => {
+  const handleLogin = async (overrideUser?: string, overridePass?: string) => {
     try {
       setAuthError('');
-      if (!loginUsername.trim() || !loginPassword.trim()) { setAuthError("Lütfen tüm alanları doldurun."); return; }
+      const u = overrideUser || loginUsername;
+      const p = overridePass || loginPassword;
+      if (!u.trim() || !p.trim()) { setAuthError("Lütfen tüm alanları doldurun."); return; }
       
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id, email, role, full_name, avatar_url')
-        .eq('username', loginUsername)
+        .eq('username', u)
         .maybeSingle();
 
       if (profileError) {
@@ -459,7 +495,7 @@ export default function App() {
 
       const { error } = await supabase.auth.signInWithPassword({
         email: profile.email,
-        password: loginPassword
+        password: p
       });
 
       if (error) { 
@@ -483,10 +519,10 @@ export default function App() {
       }
     }
 
-    const found = registeredUsers.find(u => u.username.toLowerCase() === loginUsername.toLowerCase()) || {
-      name: profile.full_name || loginUsername, 
-      username: loginUsername, 
-      password: loginPassword, 
+    const found = registeredUsers.find(userObj => userObj.username.toLowerCase() === u.toLowerCase()) || {
+      name: profile.full_name || u, 
+      username: u, 
+      password: p, 
       role: frontendRole, 
       avatar: profile.avatar_url || 'https://picsum.photos/id/64/200', 
       balance: 500, 
@@ -523,6 +559,12 @@ export default function App() {
     setAppointments(fetchedApps);
     setEditProfileData({ id: profile.id, name: found.name, username: found.username, balance: found.balance, avatar: found.avatar });
     
+      if (rememberMe || (overrideUser && overridePass)) {
+        await AsyncStorage.setItem('hopop_session', JSON.stringify({ username: u, password: p }));
+      } else {
+        await AsyncStorage.removeItem('hopop_session');
+      }
+
       setAuthState('loggedIn');
       
       if (frontendRole === 'admin') setActiveTab('admin_panel');
@@ -530,8 +572,10 @@ export default function App() {
       else setActiveTab('map');
       
       setSelectedCategory(null);
-      setLoginUsername('');
-      setLoginPassword('');
+      if (!rememberMe && !overrideUser) {
+        setLoginUsername('');
+        setLoginPassword('');
+      }
       showNotification(`Hoş geldin, ${found.name}! 👋`);
     } catch (err: any) {
       setAuthError(err.message || "Bilinmeyen bir hata oluştu.");
@@ -685,7 +729,7 @@ export default function App() {
     return `${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  if (loading || !location || !dbLoaded) return <View style={styles.centerContainer}><ActivityIndicator size="large" color="#000" /></View>;
+  if (loading || !location || !dbLoaded || authLoading) return <View style={styles.centerContainer}><ActivityIndicator size="large" color="#000" /></View>;
 
   if (authState === 'login') {
     return (
@@ -695,8 +739,16 @@ export default function App() {
           {authError ? <Text style={{ color: 'red', marginBottom: 10, textAlign: 'center' }}>{authError}</Text> : null}
           <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Kullanıcı Adı" value={loginUsername} onChangeText={setLoginUsername} autoCapitalize="none" />
           <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Şifre" value={loginPassword} onChangeText={setLoginPassword} secureTextEntry />
-          <TouchableOpacity style={styles.authPrimaryBtn} onPress={handleLogin}><Text style={styles.authPrimaryBtnText}>GİRİŞ YAP</Text></TouchableOpacity>
-          <TouchableOpacity style={{marginTop: 20}} onPress={() => setAuthState('register')}>
+            <TouchableOpacity style={styles.authPrimaryBtn} onPress={() => handleLogin()}><Text style={styles.authPrimaryBtnText}>GİRİŞ YAP</Text></TouchableOpacity>
+            
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 15, justifyContent: 'center' }}>
+              <TouchableOpacity onPress={() => setRememberMe(!rememberMe)} style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <Ionicons name={rememberMe ? "checkbox" : "square-outline"} size={20} color="#000" />
+                <Text style={{ marginLeft: 8, color: '#555' }}>Beni Hatırla</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity style={{marginTop: 20}} onPress={() => setAuthState('register')}>
             <Text style={styles.registerLink}>Hesabınız yok mu? <Text style={styles.registerLinkHighlight}>Hemen Kayıt Ol</Text></Text>
           </TouchableOpacity>
         </View>
@@ -819,7 +871,13 @@ export default function App() {
           )}
 
           {activeTab === 'appointments' && (
-            <View style={styles.tabPadding}><Text style={styles.tabTitle}>AKTİF RANDEVULARIM</Text>
+            <View style={styles.tabPadding}>
+              <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+                <Text style={styles.tabTitle}>AKTİF RANDEVULARIM</Text>
+                <TouchableOpacity onPress={() => showNotification("Randevular güncel!")}>
+                  <Ionicons name="refresh" size={20} color="#000" />
+                </TouchableOpacity>
+              </View>
               <FlatList data={appointments.filter(a => a.status === 'pending' || a.status === 'confirmed')} keyExtractor={item => item.id} renderItem={({ item }) => (
                 <View style={styles.appCard}>
                   <View style={{ flex: 1 }}><Text style={styles.appShopName}>{item.barberName}</Text><Text style={styles.appDate}>{item.date} | {item.time}</Text></View>
@@ -850,7 +908,12 @@ export default function App() {
 
           {activeTab === 'profile' && (
             <View style={styles.tabPadding}>
-              <Text style={[styles.tabTitle, { color: 'black' }]}>PROFİLİM</Text>
+              <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+                <Text style={[styles.tabTitle, { color: 'black' }]}>PROFİLİM</Text>
+                <TouchableOpacity onPress={() => showNotification("Profil bilgileri güncel!")}>
+                  <Ionicons name="refresh" size={20} color="#000" />
+                </TouchableOpacity>
+              </View>
               <View style={styles.profileHeader}>
                 <Image source={{ uri: user.avatar }} style={styles.profileAvatar} />
                 <View style={{ marginLeft: 15 }}>
@@ -952,22 +1015,23 @@ export default function App() {
               </View>
 
               <View style={styles.ownerSectionHead}>
-                <Text style={styles.sectionTitle}>MAĞAZA AYARLARI</Text>
+                <Text style={styles.sectionTitle}>MAĞAZA VİTRİNİ</Text>
               </View>
               <View style={{ backgroundColor: '#f9f9f9', padding: 20, borderRadius: 15, marginBottom: 25 }}>
-                <TouchableOpacity style={styles.expImagePicker} onPress={() => pickImage(async (uri) => {
-                   const { error } = await supabase.from('shops').update({ image_url: uri }).eq('id', ownerShopDb.id);
-                   if (!error) { setOwnerShopDb({...ownerShopDb, image_url: uri}); showNotification("Mağaza fotoğrafı güncellendi!"); }
-                }, [16, 9])}>
-                  {ownerShopDb.image_url ? (
-                    <Image source={{uri: ownerShopDb.image_url}} style={{ width: '100%', height: 120, borderRadius: 12, resizeMode: 'cover' }} />
-                  ) : (
-                    <View style={styles.expPickerPlaceholder}>
-                      <Ionicons name="image-outline" size={40} color="#ccc" />
-                      <Text style={{color:'#aaa', fontSize:12, marginTop:8}}>Mağaza Vitrin Fotoğrafı Ekle</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom: 10}}>
+                  {getShopImages(ownerShopDb.image_url).map((img, i) => (
+                    <Image key={i} source={{uri: img}} style={{ width: 120, height: 120, borderRadius: 12, marginRight: 10, resizeMode: 'cover' }} />
+                  ))}
+                  <TouchableOpacity style={[styles.expPickerPlaceholder, {width: 120, height: 120, marginRight: 10, marginBottom: 0}]} onPress={() => pickImage(async (uri) => {
+                     const currentImages = getShopImages(ownerShopDb.image_url);
+                     const newImages = [...currentImages, uri];
+                     const { error } = await supabase.from('shops').update({ image_url: JSON.stringify(newImages) }).eq('id', ownerShopDb.id);
+                     if (!error) { setOwnerShopDb({...ownerShopDb, image_url: JSON.stringify(newImages)}); showNotification("Yeni fotoğraf eklendi!"); }
+                  }, [16, 9])}>
+                    <Ionicons name="add" size={40} color="#ccc" />
+                    <Text style={{color:'#aaa', fontSize:12, marginTop:8, textAlign:'center'}}>Fotoğraf Ekle</Text>
+                  </TouchableOpacity>
+                </ScrollView>
                 <Text style={{ fontWeight:'bold', marginBottom:10 }}>Çalışma Saatleri (Müşterilerin Seçebileceği Saatler)</Text>
                 <View style={{flexDirection:'row', flexWrap:'wrap', gap:10}}>
                    {["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"].map(t => {
@@ -1072,8 +1136,14 @@ export default function App() {
       {selectedBarber && (
         <Modal visible={!!selectedBarber} animationType="slide">
           <View style={{ flex: 1, backgroundColor: '#fff' }}>
-            <Image source={{ uri: selectedBarber.imageUrl }} style={{ width: '100%', height: 250 }} />
-            <TouchableOpacity style={styles.closeBtn} onPress={() => setSelectedBarber(null)}><Ionicons name="close" size={24} color="white" /></TouchableOpacity>
+            <View style={{ height: 250 }}>
+              <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
+                {selectedBarber.images.map((img: string, idx: number) => (
+                  <Image key={idx} source={{ uri: img }} style={{ width: Dimensions.get('window').width, height: 250, resizeMode: 'cover' }} />
+                ))}
+              </ScrollView>
+              <TouchableOpacity style={styles.closeBtn} onPress={() => setSelectedBarber(null)}><Ionicons name="close" size={24} color="white" /></TouchableOpacity>
+            </View>
             <ScrollView style={{ padding: 20 }}>
               <Text style={styles.detailName}>{selectedBarber.name}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
