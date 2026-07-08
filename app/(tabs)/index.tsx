@@ -281,9 +281,6 @@ export default function App() {
     try { await AsyncStorage.setItem('hopop_users', JSON.stringify(users)); } catch (e) { console.log('Save error:', e); }
   }, []);
 
-  const saveGlobalReviewsToStorage = useCallback(async (gReviews: Record<string, Review[]>) => {
-    try { await AsyncStorage.setItem('hopop_global_reviews', JSON.stringify(gReviews)); } catch (e) { console.log('Save GR error:', e); }
-  }, []);
 
   const loadDbFromStorage = useCallback(async () => {
     try {
@@ -293,16 +290,37 @@ export default function App() {
       else await saveUsersToStorage(DEFAULT_USERS);
       setRegisteredUsers(loadedUsers);
 
-      const loadGlobalReviewsFromStorage = async () => {
+      const fetchGlobalReviewsFromDb = async () => {
         try {
-          const rData = await AsyncStorage.getItem('hopop_global_reviews');
-          if (rData) setGlobalReviews(JSON.parse(rData));
-          
+          const { data, error } = await supabase.from('reviews').select('*, profiles(full_name, avatar_url), shops(name)');
+          if (!error && data) {
+            const newGlobalReviews: Record<string, Review[]> = {};
+            data.forEach((row: any) => {
+              const rev: Review = {
+                id: row.id,
+                user: row.profiles?.full_name || 'Anonim',
+                userAvatar: row.profiles?.avatar_url || 'https://i.pravatar.cc/150',
+                shopId: row.shop_id,
+                shopName: row.shops?.name || 'Dükkan',
+                appointmentId: row.appointment_id,
+                comment: row.comment || '',
+                star: row.star,
+                imageUrl: row.image_url,
+                date: new Date(row.created_at).toLocaleDateString()
+              };
+              if(!newGlobalReviews[row.shop_id]) newGlobalReviews[row.shop_id] = [];
+              newGlobalReviews[row.shop_id].push(rev);
+            });
+            setGlobalReviews(newGlobalReviews);
+          }
+        } catch(e) {}
+        
+        try {
           const reqData = await AsyncStorage.getItem('hopop_delete_requests');
           if (reqData) setDeleteRequests(JSON.parse(reqData));
         } catch (e) {}
       };
-      await loadGlobalReviewsFromStorage();
+      await fetchGlobalReviewsFromDb();
 
     } catch (e) {
       console.log('Load error:', e);
@@ -591,10 +609,24 @@ export default function App() {
       })));
     }
     
+    const { data: userRevs } = await supabase.from('reviews').select('*, shops(name)').eq('user_id', profile.id).order('created_at', { ascending: false });
+    const mappedRevs = (userRevs || []).map((row: any) => ({
+      id: row.id,
+      user: profile.full_name,
+      userAvatar: profile.avatar_url,
+      shopId: row.shop_id,
+      shopName: row.shops?.name,
+      appointmentId: row.appointment_id,
+      comment: row.comment,
+      star: row.star,
+      imageUrl: row.image_url,
+      date: new Date(row.created_at).toLocaleDateString()
+    }));
+
     setCurrentUsername(found.username);
     setUserRole(frontendRole as any);
     setUser({ id: profile.id, name: found.name, username: found.username, balance: found.balance, avatar: found.avatar });
-    setUserExperiences(found.experiences || []);
+    setUserExperiences(mappedRevs);
     setAppointments(fetchedApps);
     setEditProfileData({ id: profile.id, name: found.name, username: found.username, balance: found.balance, avatar: found.avatar });
     
@@ -751,8 +783,8 @@ export default function App() {
     const shopReviews = (globalReviews[shopId] || []).filter(r => r.id !== reviewId);
     const newGlobalReviews = {...globalReviews, [shopId]: shopReviews};
     setGlobalReviews(newGlobalReviews);
-    saveGlobalReviewsToStorage(newGlobalReviews);
     updateAverageRating(shopId, shopReviews);
+    await supabase.from('reviews').delete().eq('id', reviewId);
     showNotification("Yorum kalıcı olarak silindi.");
   };
 
@@ -767,8 +799,8 @@ export default function App() {
     const shopReviews = (globalReviews[shopId] || []).filter(r => r.id !== reviewId);
     const newGlobalReviews = {...globalReviews, [shopId]: shopReviews};
     setGlobalReviews(newGlobalReviews);
-    saveGlobalReviewsToStorage(newGlobalReviews);
     updateAverageRating(shopId, shopReviews);
+    await supabase.from('reviews').delete().eq('id', reviewId);
     showNotification("Yorum silindi.");
   };
 
@@ -1403,22 +1435,42 @@ export default function App() {
               
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <TouchableOpacity style={[styles.payBtn, { backgroundColor: '#ccc', flex: 1 }]} onPress={() => setShowAddExperienceModal(false)}><Text style={styles.payBtnText}>İPTAL</Text></TouchableOpacity>
-                <TouchableOpacity style={[styles.payBtn, { flex: 1 }]} onPress={() => { 
+                <TouchableOpacity style={[styles.payBtn, { flex: 1 }]} onPress={async () => { 
                   if(reviewTarget) {
-                    const newRev: Review = { id: Math.random().toString(), user: user.name, userAvatar: user.avatar, shopId: reviewTarget.shopId, shopName: reviewTarget.barberName, appointmentId: reviewTarget.id, comment: reviewData.comment || 'Puanlandı.', star: reviewData.star, imageUrl: reviewData.imageUrl, date: new Date().toLocaleDateString() };
-                    const shopReviews = [...(globalReviews[reviewTarget.shopId] || []), newRev];
-                    const newGlobalReviews = {...globalReviews, [reviewTarget.shopId]: shopReviews};
-                    const newExps = [newRev, ...userExperiences];
-                    
-                    setGlobalReviews(newGlobalReviews);
-                    setUserExperiences(newExps);
-                    
-                    updateAverageRating(reviewTarget.shopId, shopReviews);
-                    
-                    if (currentUsername) {
-                      updateUserInDb(currentUsername, { experiences: newExps });
+                    const { data: newDbRev, error } = await supabase.from('reviews').insert({
+                      shop_id: reviewTarget.shopId,
+                      user_id: user.id,
+                      appointment_id: reviewTarget.id,
+                      comment: reviewData.comment || 'Puanlandı.',
+                      star: reviewData.star,
+                      image_url: reviewData.imageUrl
+                    }).select('*, profiles(full_name, avatar_url), shops(name)').single();
+
+                    if (!error && newDbRev) {
+                      const rev: Review = {
+                        id: newDbRev.id,
+                        user: newDbRev.profiles?.full_name || user.name,
+                        userAvatar: newDbRev.profiles?.avatar_url || user.avatar,
+                        shopId: newDbRev.shop_id,
+                        shopName: newDbRev.shops?.name || reviewTarget.barberName,
+                        appointmentId: newDbRev.appointment_id,
+                        comment: newDbRev.comment,
+                        star: newDbRev.star,
+                        imageUrl: newDbRev.image_url,
+                        date: new Date(newDbRev.created_at).toLocaleDateString()
+                      };
+                      
+                      const shopReviews = [...(globalReviews[rev.shopId] || []), rev];
+                      const newGlobalReviews = {...globalReviews, [rev.shopId]: shopReviews};
+                      const newExps = [rev, ...userExperiences];
+                      
+                      setGlobalReviews(newGlobalReviews);
+                      setUserExperiences(newExps);
+                      updateAverageRating(rev.shopId, shopReviews);
+                    } else {
+                      Alert.alert("Hata", "Yorum kaydedilirken bir hata oluştu: " + (error?.message || 'Bilinmeyen hata'));
+                      return;
                     }
-                    saveGlobalReviewsToStorage(newGlobalReviews);
                   }
                   setShowAddExperienceModal(false); 
                   showNotification("Değerlendirme kaydedildi! 🎉"); 
