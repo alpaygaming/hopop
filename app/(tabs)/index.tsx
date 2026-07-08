@@ -238,6 +238,8 @@ export default function App() {
   const [showManualAddModal, setShowManualAddModal] = useState(false);
   const [showAddExperienceModal, setShowAddExperienceModal] = useState(false);
   const [showAddExpModal, setShowAddExpModal] = useState(false); // Yeni manuel deneyim modalı
+  const [manualCustName, setManualCustName] = useState('');
+  const [manualTime, setManualTime] = useState('');
 
   // Profil ve Deneyim Ekleme
   const [editProfileData, setEditProfileData] = useState(user);
@@ -603,13 +605,21 @@ export default function App() {
       }));
     } else if (frontendRole === 'owner' && ownerShopDb) {
       const { data: oApps } = await supabase.from('appointments').select('*, profiles(full_name)').eq('shop_id', ownerShopDb.id).order('created_at', { ascending: false });
-      setOwnerAppointments((oApps || []).map((a: any) => ({
+      const mappedDb = (oApps || []).map((a: any) => ({
          id: a.id, shopId: a.shop_id, barberName: ownerShopDb.name,
          customerName: a.profiles?.full_name || 'Müşteri',
          date: new Date(a.appointment_date).toLocaleDateString(),
          time: new Date(a.appointment_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
          price: a.price, type: ownerShopDb.category, status: a.status
-      })));
+      }));
+      
+      let manualApps = [];
+      try {
+        const mData = await AsyncStorage.getItem('hopop_manual_apps_' + ownerShopDb.id);
+        if (mData) manualApps = JSON.parse(mData);
+      } catch(e) {}
+      
+      setOwnerAppointments([...mappedDb, ...manualApps]);
     }
     
     const { data: userRevs } = await supabase.from('reviews').select('*, shops(name)').eq('user_id', profile.id).order('created_at', { ascending: false });
@@ -1153,13 +1163,21 @@ export default function App() {
                 <View style={{flexDirection:'row', gap:10, alignItems: 'center'}}>
                   <TouchableOpacity onPress={async () => {
                      const { data: oApps } = await supabase.from('appointments').select('*, profiles(full_name)').eq('shop_id', ownerShopDb.id).order('created_at', { ascending: false });
-                     setOwnerAppointments((oApps || []).map((a: any) => ({
+                     const mappedDb = (oApps || []).map((a: any) => ({
                         id: a.id, shopId: a.shop_id, barberName: ownerShopDb.name,
                         customerName: a.profiles?.full_name || 'Müşteri',
                         date: new Date(a.appointment_date).toLocaleDateString(),
                         time: new Date(a.appointment_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
                         price: a.price, type: ownerShopDb.category, status: a.status
-                     })));
+                     }));
+                     
+                     let manualApps = [];
+                     try {
+                       const mData = await AsyncStorage.getItem('hopop_manual_apps_' + ownerShopDb.id);
+                       if (mData) manualApps = JSON.parse(mData);
+                     } catch(e) {}
+                     
+                     setOwnerAppointments([...mappedDb, ...manualApps]);
                      showNotification("Randevular yenilendi!");
                   }}>
                     <Ionicons name="refresh" size={20} color="#000" />
@@ -1384,7 +1402,21 @@ export default function App() {
 
       <Modal visible={showTopUpModal} transparent animationType="fade"><View style={styles.modalOverlay}><View style={styles.paymentCard}><Text style={styles.modalTitle}>BAKİYE YÜKLE</Text><TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Yüklenecek Tutar" keyboardType="numeric" value={topUpAmount} onChangeText={setTopUpAmount} /><View style={{flexDirection:'row', gap:10}}><TouchableOpacity style={[styles.payBtn, {backgroundColor: '#ccc', flex:1}]} onPress={() => setShowTopUpModal(false)}><Text style={styles.payBtnText}>İPTAL</Text></TouchableOpacity><TouchableOpacity style={[styles.payBtn, {flex: 1}]} onPress={() => { const amt = parseFloat(topUpAmount) || 100; const newB = user.balance + amt; setUser({ ...user, balance: newB }); if(currentUsername) updateUserInDb(currentUsername, { balance: newB }); setShowTopUpModal(false); setTopUpAmount(''); showNotification(`${amt} TL Yüklendi!`); }}><Text style={styles.payBtnText}>YÜKLE</Text></TouchableOpacity></View></View></View></Modal>
 
-      <Modal visible={showManualAddModal} transparent animationType="slide"><View style={styles.modalOverlay}><View style={styles.paymentCard}><Text style={styles.modalTitle}>MANUEL RANDEVU</Text><TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Müşteri Adı" /><TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Saat (Örn: 10:30)" /><View style={{flexDirection:'row', gap:10}}><TouchableOpacity style={[styles.payBtn, {backgroundColor: '#ccc', flex:1}]} onPress={() => setShowManualAddModal(false)}><Text style={styles.payBtnText}>İPTAL</Text></TouchableOpacity><TouchableOpacity style={[styles.payBtn, {flex:1}]} onPress={() => { setOwnerAppointments([...ownerAppointments, { id: 'm1', shopId: 'osm-1', barberName: '', date: 'Bugün', time: '10:30', price: 0, type: '', customerName: 'Dükkan Müşterisi', status: 'active' }]); setShowManualAddModal(false); }}><Text style={styles.payBtnText}>KAYDET</Text></TouchableOpacity></View></View></View></Modal>
+      <Modal visible={showManualAddModal} transparent animationType="slide"><View style={styles.modalOverlay}><View style={styles.paymentCard}><Text style={styles.modalTitle}>MANUEL RANDEVU</Text><TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Müşteri Adı" value={manualCustName} onChangeText={setManualCustName} /><TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Saat (Örn: 10:30)" value={manualTime} onChangeText={setManualTime} /><View style={{flexDirection:'row', gap:10}}><TouchableOpacity style={[styles.payBtn, {backgroundColor: '#ccc', flex:1}]} onPress={() => setShowManualAddModal(false)}><Text style={styles.payBtnText}>İPTAL</Text></TouchableOpacity><TouchableOpacity style={[styles.payBtn, {flex:1}]} onPress={async () => { 
+        if (!manualCustName.trim() || !manualTime.trim()) { Alert.alert("Hata", "Lütfen isim ve saat girin."); return; }
+        const newApp: Appointment = { id: 'm_' + Math.random().toString(), shopId: ownerShopDb?.id || 'osm-1', barberName: '', date: 'Bugün', time: manualTime, price: 0, type: '', customerName: manualCustName + ' (Elle)', status: 'confirmed' };
+        const updatedApps = [newApp, ...ownerAppointments];
+        setOwnerAppointments(updatedApps);
+        try {
+          const mData = await AsyncStorage.getItem('hopop_manual_apps_' + ownerShopDb?.id);
+          const manualApps = mData ? JSON.parse(mData) : [];
+          await AsyncStorage.setItem('hopop_manual_apps_' + ownerShopDb?.id, JSON.stringify([newApp, ...manualApps]));
+        } catch(e) {}
+        setShowManualAddModal(false); 
+        setManualCustName('');
+        setManualTime('');
+        showNotification("Manuel randevu eklendi.");
+      }}><Text style={styles.payBtnText}>KAYDET</Text></TouchableOpacity></View></View></View></Modal>
 
       <Modal visible={showEditProfileModal} transparent animationType="slide">
         <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
