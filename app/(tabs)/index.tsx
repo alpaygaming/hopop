@@ -242,8 +242,10 @@ export default function App() {
   // Profil ve Deneyim Ekleme
   const [editProfileData, setEditProfileData] = useState(user);
   const [newExpShopName, setNewExpShopName] = useState('');
+  const [newExpShopId, setNewExpShopId] = useState('');
   const [newExpComment, setNewExpComment] = useState('');
   const [newExpImage, setNewExpImage] = useState('');
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const [reviewTarget, setReviewTarget] = useState<Appointment | null>(null);
   const [reviewData, setReviewData] = useState({ star: 5, comment: '', imageUrl: '' });
@@ -261,6 +263,7 @@ export default function App() {
   const [rememberMe, setRememberMe] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [localImages, setLocalImages] = useState<string[]>([]);
+  const [modalImageIndex, setModalImageIndex] = useState(0);
   const [regName, setRegName] = useState('');
   const [regUsername, setRegUsername] = useState('');
   const [regEmail, setRegEmail] = useState('');
@@ -731,27 +734,33 @@ export default function App() {
 
   const handleAddExperience = () => {
     if (!newExpComment.trim()) { showNotification("Lütfen bir açıklama yazın."); return; }
-    if (!newExpShopName.trim()) { showNotification("Lütfen dükkan adını yazın."); return; }
+    if (!newExpShopName.trim() || !newExpShopId) { showNotification("Lütfen bir dükkan seçin."); return; }
     const newExp: Review = {
       id: 'exp' + Date.now(),
       imageUrl: newExpImage || undefined,
-      shopId: newExpShopName || 'Bilinmeyen Dükkan',
+      shopId: newExpShopId,
       comment: newExpComment,
       star: 5,
       date: new Date().toLocaleDateString(),
       user: user.name,
       userAvatar: user.avatar
     };
+    
+    const newGlobalReviews = {...globalReviews, [newExpShopId]: [...(globalReviews[newExpShopId] || []), newExp]};
+    setGlobalReviews(newGlobalReviews);
+    saveGlobalReviewsToStorage(newGlobalReviews);
+
     const updatedExps = [newExp, ...userExperiences];
     setUserExperiences(updatedExps);
     if (currentUsername) {
       updateUserInDb(currentUsername, { experiences: updatedExps });
     }
     setNewExpShopName('');
+    setNewExpShopId('');
     setNewExpComment('');
     setNewExpImage('');
     setShowAddExpModal(false);
-    showNotification("Deneyim eklendi! ✅");
+    showNotification("Deneyim başarıyla paylaşıldı! 🎉");
   };
 
   const formatTime = (seconds: number) => {
@@ -1188,13 +1197,25 @@ export default function App() {
              // If not, Dimensions works fine. Using layout width is safest.
              if(!selectedBarber.modalWidth) setSelectedBarber({...selectedBarber, modalWidth: e.nativeEvent.layout.width});
           }}>
-            <View style={{ height: 250 }}>
-              <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
-                {selectedBarber.images.map((img: string, idx: number) => (
-                  <Image key={idx} source={{ uri: img }} style={{ width: selectedBarber.modalWidth || Dimensions.get('window').width, height: 250, resizeMode: 'contain', backgroundColor: '#000' }} />
-                ))}
-              </ScrollView>
-              <TouchableOpacity style={styles.closeBtn} onPress={() => setSelectedBarber(null)}><Ionicons name="close" size={24} color="white" /></TouchableOpacity>
+            <View style={{ height: 250, position: 'relative' }}>
+              <Image source={{ uri: selectedBarber.images[modalImageIndex] }} style={{ width: selectedBarber.modalWidth || Dimensions.get('window').width, height: 250, resizeMode: 'contain', backgroundColor: '#000' }} />
+              
+              {selectedBarber.images.length > 1 && (
+                <>
+                  {modalImageIndex > 0 && (
+                    <TouchableOpacity style={{ position: 'absolute', left: 10, top: 110, backgroundColor: 'rgba(0,0,0,0.5)', padding: 10, borderRadius: 20 }} onPress={() => setModalImageIndex(modalImageIndex - 1)}>
+                      <Ionicons name="chevron-back" size={24} color="#fff" />
+                    </TouchableOpacity>
+                  )}
+                  {modalImageIndex < selectedBarber.images.length - 1 && (
+                    <TouchableOpacity style={{ position: 'absolute', right: 10, top: 110, backgroundColor: 'rgba(0,0,0,0.5)', padding: 10, borderRadius: 20 }} onPress={() => setModalImageIndex(modalImageIndex + 1)}>
+                      <Ionicons name="chevron-forward" size={24} color="#fff" />
+                    </TouchableOpacity>
+                  )}
+                </>
+              )}
+              
+              <TouchableOpacity style={styles.closeBtn} onPress={() => { setSelectedBarber(null); setModalImageIndex(0); }}><Ionicons name="close" size={24} color="white" /></TouchableOpacity>
             </View>
             <ScrollView style={{ padding: 20 }}>
               <Text style={styles.detailName}>{selectedBarber.name}</Text>
@@ -1325,7 +1346,17 @@ export default function App() {
                     </View>
                   )}
                 </TouchableOpacity>
-                <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Dükkan Adı" value={newExpShopName} onChangeText={setNewExpShopName} />
+                <Text style={{ fontWeight:'bold', marginBottom:5 }}>Hangi dükkanı değerlendiriyorsunuz?</Text>
+                {appointments.length === 0 ? <Text style={{color:'#aaa', marginBottom:15}}>Hiç randevunuz yok.</Text> : (
+                  <ScrollView style={{maxHeight: 120, marginBottom: 15, width:'100%'}}>
+                    {appointments.map(app => (
+                       <TouchableOpacity key={app.id} style={{padding:10, backgroundColor: newExpShopId === app.shopId ? '#ddd' : '#f9f9f9', marginBottom:5, borderRadius:8, borderWidth: newExpShopId === app.shopId ? 2 : 0, borderColor: '#000'}} onPress={() => { setNewExpShopId(app.shopId); setNewExpShopName(app.barberName); }}>
+                          <Text style={{fontWeight:'bold'}}>{app.barberName}</Text>
+                          <Text style={{fontSize:12, color:'#666'}}>{app.date} • {app.time}</Text>
+                       </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                )}
                 <TextInput style={[styles.authInput, {height:80}]} placeholderTextColor="#555" placeholder="Deneyiminizi anlatın..." value={newExpComment} onChangeText={setNewExpComment} multiline />
                 <TouchableOpacity style={styles.payBtn} onPress={handleAddExperience}>
                   <Text style={styles.payBtnText}>PAYLAŞ</Text>
