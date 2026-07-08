@@ -704,7 +704,8 @@ export default function App() {
   };
 
   const handleAddExperience = () => {
-    if (!newExpComment.trim()) { alert("Lütfen bir açıklama yazın."); return; }
+    if (!newExpComment.trim()) { showNotification("Lütfen bir açıklama yazın."); return; }
+    if (!newExpShopName.trim()) { showNotification("Lütfen dükkan adını yazın."); return; }
     const newExp: Review = {
       id: 'exp' + Date.now(),
       imageUrl: newExpImage || undefined,
@@ -1035,7 +1036,7 @@ export default function App() {
                     </View>
                   ))}
                   <TouchableOpacity style={[styles.expPickerPlaceholder, {width: 120, height: 120, marginRight: 10, marginBottom: 0}]} onPress={() => pickImage((uri) => {
-                     setLocalImages([...localImages, uri]);
+                     setLocalImages(prev => [...prev, uri]);
                   }, [16, 9])}>
                     <Ionicons name="add" size={40} color="#ccc" />
                     <Text style={{color:'#aaa', fontSize:12, marginTop:8, textAlign:'center'}}>Fotoğraf Ekle</Text>
@@ -1047,7 +1048,7 @@ export default function App() {
                      setOwnerShopDb({...ownerShopDb, image_url: JSON.stringify(localImages)}); 
                      showNotification("Vitrin fotoğrafları kaydedildi! ✅"); 
                    } else {
-                     alert("Hata: " + error.message);
+                     showNotification("Hata: " + error.message);
                    }
                 }}>
                   <Text style={styles.payBtnText}>FOTOĞRAFLARI KAYDET</Text>
