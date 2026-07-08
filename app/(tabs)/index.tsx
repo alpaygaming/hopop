@@ -333,7 +333,7 @@ export default function App() {
 
   const updateUserInDb = useCallback(async (username: string, updates: Partial<RegisteredUser>) => {
     setRegisteredUsers(prev => {
-      const updated = prev.map(u => u.username === username ? { ...u, ...updates } : u);
+      const updated = prev.map(u => u.username.toLowerCase() === username.toLowerCase() ? { ...u, ...updates } : u);
       saveUsersToStorage(updated);
       return updated;
     });
@@ -1150,12 +1150,14 @@ export default function App() {
               <View style={[styles.ownerSectionHead, { marginTop: 20 }]}>
                 <Text style={styles.sectionTitle}>MAĞAZA YORUMLARI</Text>
               </View>
-              {(globalReviews[ownerShopDb.id] || []).length === 0 ? (
-                <Text style={{color:'#aaa', marginBottom: 20}}>Henüz mağazanıza yapılmış bir değerlendirme bulunmuyor.</Text>
-              ) : (
-                <View style={{ marginBottom: 20 }}>
-                  {(globalReviews[ownerShopDb.id] || []).map(r => {
-                    const isDeleteRequested = deleteRequests.some(req => req.reviewId === r.id);
+              {(() => {
+                const ownerReviews = Object.values(globalReviews).flat().filter(r => r.shopId === ownerShopDb.id || r.shopName === ownerShopDb.name);
+                return ownerReviews.length === 0 ? (
+                  <Text style={{color:'#aaa', marginBottom: 20}}>Henüz mağazanıza yapılmış bir değerlendirme bulunmuyor.</Text>
+                ) : (
+                  <View style={{ marginBottom: 20 }}>
+                    {ownerReviews.map(r => {
+                      const isDeleteRequested = deleteRequests.some(req => req.reviewId === r.id);
                     return (
                       <View key={r.id} style={{ backgroundColor: '#f9f9f9', padding: 15, borderRadius: 12, marginBottom: 10 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
@@ -1179,7 +1181,8 @@ export default function App() {
                     );
                   })}
                 </View>
-              )}
+                );
+              })()}
               <TouchableOpacity style={styles.logoutBtn} onPress={() => { setCurrentUsername(null); setAuthState('login'); }}><Text style={{ color: 'red', fontWeight:'bold', marginBottom:40 }}>Panelden Çıkış</Text></TouchableOpacity>
             </ScrollView>
           )}
