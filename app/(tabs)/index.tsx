@@ -1016,7 +1016,7 @@ export default function App() {
                     {isReviewed ? (
                       <Text style={{ color: '#2ed573', fontSize: 10, fontWeight: 'bold' }}>DEĞERLENDİRİLDİ</Text>
                     ) : (
-                      <TouchableOpacity style={{ backgroundColor: '#000', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }} onPress={() => { setReviewTarget(app); setReviewData({ star: 5, comment: '', imageUrl: '' }); setShowAddExperienceModal(true); }}>
+                      <TouchableOpacity style={{ backgroundColor: '#000', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }} onPress={() => { setReviewTarget(app); setReviewData({ star: 5, comment: '', imageUrl: '' }); setAuthError(''); setShowAddExperienceModal(true); }}>
                         <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>DEĞERLENDİR</Text>
                       </TouchableOpacity>
                     )}
@@ -1414,6 +1414,7 @@ export default function App() {
           <View style={styles.paymentCard}>
             <Text style={styles.modalTitle}>DENEYİM DEĞERLENDİR</Text>
               <Text style={{fontWeight: 'bold', fontSize: 16, textAlign: 'center', marginBottom: 15}}>{reviewTarget?.barberName}</Text>
+              {authError ? <Text style={{color: 'red', textAlign: 'center', marginBottom: 10}}>{authError}</Text> : null}
               
               <View style={{flexDirection: 'row', justifyContent: 'center', marginBottom: 20}}>
                 {[1,2,3,4,5].map(s => (
@@ -1467,13 +1468,15 @@ export default function App() {
                       setGlobalReviews(newGlobalReviews);
                       setUserExperiences(newExps);
                       updateAverageRating(rev.shopId, shopReviews);
+                      setAuthError('');
                     } else {
-                      Alert.alert("Hata", "Yorum kaydedilirken bir hata oluştu: " + (error?.message || 'Bilinmeyen hata'));
+                      setAuthError("Yorum kaydedilemedi: " + (error?.message || 'Veritabanı hatası. SQL tablosunu oluşturduğunuzdan emin olun!'));
                       return;
                     }
                   }
                   setShowAddExperienceModal(false); 
                   showNotification("Değerlendirme kaydedildi! 🎉"); 
+                  setAuthError('');
                 }}><Text style={styles.payBtnText}>GÖNDER</Text></TouchableOpacity>
               </View>
             </View>
