@@ -402,7 +402,10 @@ export default function App() {
         if (status !== 'granted') {
           setLocation({ coords: { latitude: 41.0082, longitude: 28.9784 } } as any);
         } else {
-          let curr = await Location.getCurrentPositionAsync({});
+          const locationPromise = Location.getCurrentPositionAsync({ accuracy: 3 }); // Accuracy.Balanced = 3
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Location timeout')), 3000));
+          
+          let curr = await Promise.race([locationPromise, timeoutPromise]) as any;
           setLocation(curr);
         }
       } catch (e) {
