@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, FlatList, ScrollView, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
+import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
 
 interface ShopsScreenProps {
   dynamicBarbers: any[];
@@ -78,14 +79,18 @@ export const ShopsScreen: React.FC<ShopsScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
-  tabPadding: { flex: 1, padding: 20, backgroundColor: '#fff' },
-  tabTitle: { fontSize: 24, fontWeight: '900', color: '#000', marginBottom: 20, letterSpacing: -1 },
-  shopCard: { flexDirection: 'row', backgroundColor: '#fff', borderRadius: 16, marginBottom: 15, padding: 12, borderWidth: 1, borderColor: '#eee', shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.05, shadowRadius: 3, elevation: 2 },
-  promotedCard: { borderColor: '#ffd32a', borderWidth: 2, backgroundColor: '#fffdf0' },
-  shopImage: { width: 80, height: 80, borderRadius: 12, backgroundColor: '#f9f9f9' },
-  shopInfo: { flex: 1, marginLeft: 15, justifyContent: 'center' },
-  shopName: { fontSize: 16, fontWeight: 'bold', color: '#000', marginBottom: 5 },
-  shopDistance: { color: '#666', fontSize: 13 },
-  promoBadge: { backgroundColor: '#ffd32a', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, alignSelf: 'flex-start' },
-  promoText: { fontSize: 9, fontWeight: 'bold', color: '#000' },
+  tabPadding: { flex: 1, padding: spacing.xl, backgroundColor: colors.background },
+  tabTitle: { ...typography.h2, color: colors.primary, marginBottom: spacing.xl, letterSpacing: -1 },
+  shopCard: { 
+    flexDirection: 'row', backgroundColor: colors.background, borderRadius: radius.lg, 
+    marginBottom: spacing.lg, padding: spacing.md, borderWidth: 1, borderColor: colors.border, 
+    ...shadows.sm 
+  },
+  promotedCard: { borderColor: colors.accent.yellow, borderWidth: 2, backgroundColor: '#fffdf0' },
+  shopImage: { width: 80, height: 80, borderRadius: radius.md, backgroundColor: colors.surface },
+  shopInfo: { flex: 1, marginLeft: spacing.lg, justifyContent: 'center' },
+  shopName: { ...typography.body, fontWeight: 'bold', color: colors.primary, marginBottom: spacing.xs },
+  shopDistance: { color: colors.text.muted, ...typography.caption },
+  promoBadge: { backgroundColor: colors.accent.yellow, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radius.xs, alignSelf: 'flex-start' },
+  promoText: { ...typography.label, color: colors.primary },
 });

@@ -50,21 +50,55 @@ export default function AppMap({ location, dynamicBarbers, setSelectedBarber, ma
         
         {dynamicBarbers && dynamicBarbers.map((barber: any) => {
           if (!barber.latitude || !barber.longitude) return null;
+          
+          let color = '#3498db';
+          let iconName = 'cut';
+          if (barber.type === 'kuaför') { color = '#e84393'; iconName = 'female'; }
+          else if (barber.type === 'tırnak') { color = '#fd79a8'; iconName = 'hand-sparkles'; }
+          else if (barber.type === 'güzellik') { color = '#a29bfe'; iconName = 'spa'; }
+
+          const customHtmlIcon = L.divIcon({
+            html: `<div style="
+              background-color: white;
+              width: 36px; height: 36px;
+              border-radius: 18px;
+              border: 2px solid ${color};
+              display: flex; justify-content: center; align-items: center;
+              box-shadow: 0px 4px 6px rgba(0,0,0,0.3);
+              font-size: 16px;
+              color: ${color};
+              font-family: 'Font Awesome 5 Free'; font-weight: 900;
+            "><i class="fas fa-${iconName}"></i></div>`,
+            className: '',
+            iconSize: [36, 36],
+            iconAnchor: [18, 18],
+            popupAnchor: [0, -18]
+          });
+
           return (
             <Marker 
               key={barber.id} 
               position={[barber.latitude, barber.longitude]}
+              icon={customHtmlIcon}
             >
               <Popup>
-                <div style={{ textAlign: 'center' }}>
-                  <b style={{ fontSize: '14px' }}>{barber.name}</b><br/>
-                  <span style={{ color: '#666' }}>{barber.type?.toUpperCase()}</span><br/>
-                  <span style={{ color: '#f39c12' }}>⭐ {(barber.rating || 0).toFixed(1)}</span><br/>
+                <div style={{ textAlign: 'center', minWidth: '120px', padding: '5px' }}>
+                  <b style={{ fontSize: '15px', color: '#000', fontFamily: 'system-ui' }}>{barber.name}</b><br/>
+                  <span style={{ color: color, fontSize: '12px', fontWeight: 'bold' }}>{barber.type?.toUpperCase()}</span><br/>
+                  <div style={{ backgroundColor: '#fff8e1', padding: '4px', borderRadius: '8px', display: 'inline-block', margin: '8px 0' }}>
+                    <span style={{ color: '#f39c12', fontWeight: 'bold' }}>⭐ {(barber.rating || 0).toFixed(1)}</span>
+                  </div><br/>
                   <button 
                     onClick={() => setSelectedBarber(barber)}
-                    style={{ marginTop: '10px', padding: '5px 10px', backgroundColor: '#000', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer' }}
+                    style={{ 
+                      marginTop: '5px', padding: '8px 15px', backgroundColor: '#000', 
+                      color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer',
+                      fontWeight: 'bold', width: '100%', transition: 'all 0.2s'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#333'}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#000'}
                   >
-                    Detayları Gör
+                    Hemen İncele
                   </button>
                 </div>
               </Popup>

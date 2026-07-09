@@ -211,6 +211,22 @@ export default function App() {
   const [userRole, setUserRole] = useState<'customer' | 'owner' | 'admin' | null>(null);
   const [authState, setAuthState] = useState<'login' | 'register' | 'loggedIn'>('login');
   const [activeTab, setActiveTab] = useState<'map' | 'shops' | 'appointments' | 'profile' | 'owner_panel' | 'admin_panel'>('map');
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  const switchTab = (tab: any) => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => {
+      setActiveTab(tab);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true,
+      }).start();
+    });
+  };
 
   // Müşteri State
   const [user, setUser] = useState({ id: '', name: '', username: '', balance: 0, avatar: 'https://picsum.photos/id/64/200' });
@@ -272,11 +288,6 @@ export default function App() {
   const slideAnim = useRef(new Animated.Value(-100)).current;
 
   // DB States
-  const DEFAULT_USERS: RegisteredUser[] = [
-    { name: 'Ahmet Yılmaz', username: 'ahmet', password: '1234', role: 'customer', avatar: 'https://picsum.photos/id/64/200', balance: 500, experiences: [], appointments: [] },
-    { name: 'Elite Salon Sahibi', username: 'elite', password: '1234', role: 'owner', shopName: 'Elite Master Salon', avatar: 'https://picsum.photos/id/65/200', balance: 250, experiences: [], appointments: [] },
-  ];
-  const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>(DEFAULT_USERS);
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -293,20 +304,8 @@ export default function App() {
   const [regRole, setRegRole] = useState<'customer' | 'owner'>('customer');
   const [regShopName, setRegShopName] = useState('');
 
-  // --- DATABASE FUNCTIONS ---
-  const saveUsersToStorage = useCallback(async (users: RegisteredUser[]) => {
-    try { await AsyncStorage.setItem('hopop_users', JSON.stringify(users)); } catch (e) { console.log('Save error:', e); }
-  }, []);
-
-
   const loadDbFromStorage = useCallback(async () => {
     try {
-      const uData = await AsyncStorage.getItem('hopop_users');
-      let loadedUsers = DEFAULT_USERS;
-      if (uData) loadedUsers = JSON.parse(uData) as RegisteredUser[];
-      else await saveUsersToStorage(DEFAULT_USERS);
-      setRegisteredUsers(loadedUsers);
-
       const fetchGlobalReviewsFromDb = async () => {
         try {
           const { data, error } = await supabase.from('reviews').select('*, profiles(full_name, avatar_url), shops(name)');
@@ -543,9 +542,6 @@ export default function App() {
       setAuthError('');
       const u = overrideUser || loginUsername;
       const p = overridePass || loginPassword;
-      
-      const storedUsers = await AsyncStorage.getItem('hopop_users');
-      const latestUsers: RegisteredUser[] = storedUsers ? JSON.parse(storedUsers) : registeredUsers;
 
       if (!u.trim() || !p.trim()) { setAuthError("Lütfen tüm alanları doldurun."); return; }
       
@@ -591,15 +587,16 @@ export default function App() {
       }
     }
 
-    const existingIndex = latestUsers.findIndex(userObj => userObj.username.toLowerCase() === u.toLowerCase());
+    const existingUserStr = await AsyncStorage.getItem('last_logged_user');
     let found;
-    if (existingIndex !== -1) {
-      found = latestUsers[existingIndex];
-    } else {
+    if (existingUserStr) {
+      found = JSON.parse(existingUserStr);
+    }
+    
+    if (!found || found.username !== u) {
       found = {
         name: profile.full_name || u, 
         username: u, 
-        password: p, 
         role: frontendRole, 
         avatar: profile.avatar_url || 'https://picsum.photos/id/64/200', 
         balance: 500, 
@@ -607,9 +604,7 @@ export default function App() {
         appointments: [],
         shopName: undefined
       };
-      const updatedUsers = [...latestUsers, found];
-      setRegisteredUsers(updatedUsers);
-      saveUsersToStorage(updatedUsers);
+      await AsyncStorage.setItem('last_logged_user', JSON.stringify(found));
     }
     
     let fetchedApps: any[] = [];
@@ -860,7 +855,8 @@ export default function App() {
     <View style={styles.container}>
       <Animated.View style={[styles.notificationBar, { transform: [{ translateY: slideAnim }] }]}><Text style={styles.notificationText}>{notifText}</Text></Animated.View>
 
-      {/* --- MÜŞTERİ PANELİ --- */}
+      <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+        {/* --- MÜŞTERİ PANELİ --- */}
       {userRole === 'customer' && (
         <View style={{ flex: 1 }}>
           {activeTab === 'map' && (
@@ -973,6 +969,7 @@ export default function App() {
           onLogout={() => { setCurrentUsername(null); setAuthState('login'); }}
         />
       )}
+      </Animated.View>
 
       {/* MODALLAR */}
       <BarberDetailModal
@@ -1046,19 +1043,19 @@ export default function App() {
       <View style={styles.navBar}>
         {userRole === 'admin' ? (
           <>
-            <AnimatedPressable style={styles.navItem} onPress={() => setActiveTab('map')}><Ionicons name="map" size={20} color={activeTab === 'map' ? "#000" : "#ccc"} /><Text style={styles.navText}>KEŞFET</Text></AnimatedPressable>
-            <AnimatedPressable style={styles.navItem} onPress={() => setActiveTab('shops')}><Ionicons name="storefront" size={20} color={activeTab === 'shops' ? "#000" : "#ccc"} /><Text style={styles.navText}>MAĞAZALAR</Text></AnimatedPressable>
-            <AnimatedPressable style={styles.navItem} onPress={() => setActiveTab('appointments')}><Ionicons name="calendar" size={20} color={activeTab === 'appointments' ? "#000" : "#ccc"} /><Text style={styles.navText}>RANDEVULAR</Text></AnimatedPressable>
-            <AnimatedPressable style={styles.navItem} onPress={() => setActiveTab('admin_panel')}><Ionicons name="settings" size={20} color={activeTab === 'admin_panel' ? "#000" : "#ccc"} /><Text style={styles.navText}>SİSTEM</Text></AnimatedPressable>
+            <AnimatedPressable style={styles.navItem} onPress={() => switchTab('map')}><Ionicons name="map" size={20} color={activeTab === 'map' ? "#000" : "#ccc"} /><Text style={styles.navText}>KEŞFET</Text></AnimatedPressable>
+            <AnimatedPressable style={styles.navItem} onPress={() => switchTab('shops')}><Ionicons name="storefront" size={20} color={activeTab === 'shops' ? "#000" : "#ccc"} /><Text style={styles.navText}>MAĞAZALAR</Text></AnimatedPressable>
+            <AnimatedPressable style={styles.navItem} onPress={() => switchTab('appointments')}><Ionicons name="calendar" size={20} color={activeTab === 'appointments' ? "#000" : "#ccc"} /><Text style={styles.navText}>RANDEVULAR</Text></AnimatedPressable>
+            <AnimatedPressable style={styles.navItem} onPress={() => switchTab('admin_panel')}><Ionicons name="settings" size={20} color={activeTab === 'admin_panel' ? "#000" : "#ccc"} /><Text style={styles.navText}>SİSTEM</Text></AnimatedPressable>
           </>
         ) : userRole === 'owner' ? (
-          <AnimatedPressable style={styles.navItem} onPress={() => setActiveTab('owner_panel')}><Ionicons name="stats-chart" size={20} color={activeTab === 'owner_panel' ? "#000" : "#ccc"} /><Text style={styles.navText}>İŞLETME PANELİ</Text></AnimatedPressable>
+          <AnimatedPressable style={styles.navItem} onPress={() => switchTab('owner_panel')}><Ionicons name="stats-chart" size={20} color={activeTab === 'owner_panel' ? "#000" : "#ccc"} /><Text style={styles.navText}>İŞLETME PANELİ</Text></AnimatedPressable>
         ) : (
           <>
-            <AnimatedPressable style={styles.navItem} onPress={() => setActiveTab('map')}><Ionicons name="map" size={20} color={activeTab === 'map' ? "#000" : "#ccc"} /><Text style={styles.navText}>KEŞFET</Text></AnimatedPressable>
-            <AnimatedPressable style={styles.navItem} onPress={() => setActiveTab('shops')}><Ionicons name="storefront" size={20} color={activeTab === 'shops' ? "#000" : "#ccc"} /><Text style={styles.navText}>MAĞAZALAR</Text></AnimatedPressable>
-            <AnimatedPressable style={styles.navItem} onPress={() => setActiveTab('appointments')}><Ionicons name="calendar" size={20} color={activeTab === 'appointments' ? "#000" : "#ccc"} /><Text style={styles.navText}>RANDEVULAR</Text></AnimatedPressable>
-            <AnimatedPressable style={styles.navItem} onPress={() => setActiveTab('profile')}><Ionicons name="person" size={20} color={activeTab === 'profile' ? "#000" : "#ccc"} /><Text style={styles.navText}>PROFİL</Text></AnimatedPressable>
+            <AnimatedPressable style={styles.navItem} onPress={() => switchTab('map')}><Ionicons name="map" size={20} color={activeTab === 'map' ? "#000" : "#ccc"} /><Text style={styles.navText}>KEŞFET</Text></AnimatedPressable>
+            <AnimatedPressable style={styles.navItem} onPress={() => switchTab('shops')}><Ionicons name="storefront" size={20} color={activeTab === 'shops' ? "#000" : "#ccc"} /><Text style={styles.navText}>MAĞAZALAR</Text></AnimatedPressable>
+            <AnimatedPressable style={styles.navItem} onPress={() => switchTab('appointments')}><Ionicons name="calendar" size={20} color={activeTab === 'appointments' ? "#000" : "#ccc"} /><Text style={styles.navText}>RANDEVULAR</Text></AnimatedPressable>
+            <AnimatedPressable style={styles.navItem} onPress={() => switchTab('profile')}><Ionicons name="person" size={20} color={activeTab === 'profile' ? "#000" : "#ccc"} /><Text style={styles.navText}>PROFİL</Text></AnimatedPressable>
           </>
         )}
       </View>
