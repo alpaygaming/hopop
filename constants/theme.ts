@@ -55,27 +55,26 @@ export const Fonts = Platform.select({
 // --- HOPOP PREMIUM DESIGN TOKENS ---
 
 export const colors = {
-  primary: '#0f172a', // Slate 900
-  secondary: '#334155', // Slate 700
-  background: '#f8fafc', // Slate 50
-  surface: '#ffffff',
-  border: '#e2e8f0', // Slate 200
+  primary: '#000000',
+  background: '#ffffff',
+  surface: '#f9f9f9',
+  border: '#eeeeee',
   text: {
-    primary: '#0f172a',
-    secondary: '#475569',
-    muted: '#94a3b8',
+    primary: '#000000',
+    secondary: '#aaaaaa',
+    muted: '#666666',
   },
   accent: {
-    purple: '#8b5cf6',
-    green: '#10b981',
-    red: '#ef4444',
-    orange: '#f59e0b',
-    yellow: '#eab308',
-    blue: '#3b82f6',
-    pink: '#ec4899',
-    lightPink: '#f472b6',
+    purple: '#7d5fff',
+    green: '#2ed573',
+    red: '#ff4757',
+    orange: '#ffa502',
+    yellow: '#f39c12',
+    blue: '#3498db',
+    pink: '#e84393',
+    lightPink: '#fd79a8',
   },
-  darkPanel: '#0f172a',
+  darkPanel: '#1e272e',
 };
 
 export const typography = {
@@ -97,6 +96,6 @@ export const radius = {
 };
 
 export const shadows = {
-  sm: { shadowColor: '#0f172a', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
-  md: { shadowColor: '#0f172a', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4 },
+  sm: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 3, elevation: 1 },
+  md: { shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4 },
 };

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
+import { supabase } from '@/lib/supabase';
 
 LocaleConfig.locales['tr'] = {
   monthNames: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
@@ -19,14 +20,32 @@ import { useApp } from '@/contexts/AppContext';
 export const BarberDetailModal: React.FC = () => {
   const {
     selectedBarber, setSelectedBarber, userRole,
-    showNotification, globalReviews
+    showNotification, globalReviews, user
   } = useApp();
 
   const [modalImageIndex, setModalImageIndex] = React.useState(0);
   const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
   const [selectedTime, setSelectedTime] = React.useState<string | null>(null);
 
-  const handlePayment = () => {};
+  const handlePayment = async () => {
+    if (!user?.id) {
+       showNotification("Randevu almak için giriş yapmalısınız.");
+       return;
+    }
+    try {
+      const { error } = await supabase.from('appointments').insert([
+        { shop_id: selectedBarber.id, user_id: user.id, appointment_date: selectedDate, appointment_time: selectedTime }
+      ]);
+      if (error) {
+        showNotification("Randevu oluşturulamadı. " + error.message);
+      } else {
+        showNotification("Randevunuz başarıyla oluşturuldu!");
+        setSelectedBarber(null);
+      }
+    } catch (e: any) {
+      showNotification("Bir hata oluştu: " + e.message);
+    }
+  };
 
   if (!selectedBarber) return null;
 
@@ -131,7 +150,7 @@ export const BarberDetailModal: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  closeBtn: { position: 'absolute', top: 50, right: 20, backgroundColor: 'rgba(15,23,42,0.6)', borderRadius: 24, padding: 10, ...shadows.md },
+  closeBtn: { position: 'absolute', top: 50, right: 20, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 24, padding: 10, ...shadows.md },
   detailName: { ...typography.h1, color: colors.primary, marginBottom: spacing.xl }, 
   sectionTitle: { ...typography.caption, color: colors.text.muted, marginVertical: spacing.lg, letterSpacing: 1 },
   categoryBadge: { paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radius.sm },
