@@ -12,6 +12,15 @@ import { LoginScreen } from '@/components/screens/LoginScreen';
 import { RegisterScreen } from '@/components/screens/RegisterScreen';
 import { ProfileScreen } from '@/components/screens/ProfileScreen';
 import { AppointmentsScreen } from '@/components/screens/AppointmentsScreen';
+import { ShopsScreen } from '@/components/screens/ShopsScreen';
+import { ExploreScreen } from '@/components/screens/ExploreScreen';
+import { OwnerPanelScreen } from '@/components/screens/OwnerPanelScreen';
+import { AdminPanelScreen } from '@/components/screens/AdminPanelScreen';
+import { BarberDetailModal } from '@/components/modals/BarberDetailModal';
+import { TopUpModal } from '@/components/modals/TopUpModal';
+import { ManualAddModal } from '@/components/modals/ManualAddModal';
+import { EditProfileModal } from '@/components/modals/EditProfileModal';
+import { AddExperienceModal } from '@/components/modals/AddExperienceModal';
 import { UserRole } from '@/types';
 
 // --- OVERPASS API (OpenStreetMap) ---
@@ -854,80 +863,26 @@ export default function App() {
       {/* --- MÜŞTERİ PANELİ --- */}
       {userRole === 'customer' && (
         <View style={{ flex: 1 }}>
-          {activeTab === 'map' && (!selectedCategory ? (
-            <View style={styles.categoryScreen}>
-              <Text style={styles.mainTitle}>Keşfet</Text>
-              <TouchableOpacity style={styles.allMapCard} onPress={() => { setSelectedCategory('all'); }}><Text style={styles.allMapTitle}>TÜMÜNÜ KEŞFET</Text></TouchableOpacity>
-              <View style={styles.categoryGrid}>{CATEGORIES_DATA.map(cat => (<TouchableOpacity key={cat.id} style={styles.categoryCard} onPress={() => { setSelectedCategory(cat.id); }}><FontAwesome5 name={cat.icon as any} size={24} color="#000" /><Text style={styles.catName}>{cat.name}</Text></TouchableOpacity>))}</View>
-            </View>
-          ) : (
-            <View style={{ flex: 1 }}>
-              <AppMap 
-                location={location} 
-                dynamicBarbers={dynamicBarbers} 
-                setSelectedBarber={setSelectedBarber} 
-                mapStyle={styles.map} 
-                markerBoxStyle={styles.markerBox} 
-              />
-              {mapLoading && <View style={styles.mapLoadingOverlay}><ActivityIndicator size="large" color="#000" /><Text style={{ marginTop: 8, fontWeight: 'bold' }}>Dükkanlar aranıyor...</Text></View>}
-              <TouchableOpacity style={styles.backBtn} onPress={() => { setSelectedCategory(null); setDynamicBarbers([]); }}><Ionicons name="arrow-back" size={24} /></TouchableOpacity>
-              {dynamicBarbers.length > 0 && <View style={styles.resultBadge}><Text style={styles.resultBadgeText}>{dynamicBarbers.length} dükkan</Text></View>}
-            </View>
-          ))}
+          {activeTab === 'map' && (
+            <ExploreScreen
+              selectedCategory={selectedCategory}
+              setSelectedCategory={setSelectedCategory}
+              location={location}
+              dynamicBarbers={dynamicBarbers}
+              setSelectedBarber={setSelectedBarber}
+              mapLoading={mapLoading}
+              setDynamicBarbers={setDynamicBarbers}
+            />
+          )}
 
           {activeTab === 'shops' && (
-            <View style={styles.tabPadding}>
-              <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-                <Text style={styles.tabTitle}>MAĞAZALAR</Text>
-                {dynamicBarbers.length === 0 && (
-                  <TouchableOpacity onPress={() => setSelectedCategory('all')} style={{backgroundColor: '#000', padding: 8, borderRadius: 8}}>
-                    <Text style={{color: '#fff', fontSize: 12, fontWeight: 'bold'}}>DÜKKANLARI YÜKLE</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-              
-              <View style={{ marginBottom: 15, paddingBottom: 15, minHeight: 50 }}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 20 }}>
-                  {[
-                    { id: 'nearest', label: 'En Yakın' }, 
-                    { id: 'farthest', label: 'En Uzak' }, 
-                    { id: 'highest_rating', label: 'En Yüksek' }, 
-                    { id: 'lowest_rating', label: 'En Düşük' }
-                  ].map(opt => (
-                    <TouchableOpacity key={opt.id} style={{ paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginRight: 10, backgroundColor: sortOption === opt.id ? '#000' : '#eee' }} onPress={() => setSortOption(opt.id as any)}>
-                      <Text style={{ fontSize: 12, fontWeight: 'bold', color: sortOption === opt.id ? '#fff' : '#666' }}>{opt.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-
-              <FlatList 
-                data={[...dynamicBarbers]
-                  .sort((a, b) => {
-                    if (sortOption === 'nearest') return (a.distance || 0) - (b.distance || 0);
-                    if (sortOption === 'farthest') return (b.distance || 0) - (a.distance || 0);
-                    if (sortOption === 'highest_rating') return b.rating - a.rating;
-                    if (sortOption === 'lowest_rating') return a.rating - b.rating;
-                    return 0;
-                  })
-                  .sort((a, b) => (b.isPromoted ? 1 : 0) - (a.isPromoted ? 1 : 0))} 
-                keyExtractor={item => item.id} 
-                renderItem={({ item }) => (
-                  <TouchableOpacity style={[styles.shopCard, item.isPromoted && styles.promotedCard]} onPress={() => setSelectedBarber(item)}>
-                    <Image source={{ uri: item.imageUrl }} style={styles.shopImage} />
-                    <View style={styles.shopInfo}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                        <Text style={styles.shopName}>{item.name}</Text>
-                        {item.isPromoted && <View style={styles.promoBadge}><Text style={styles.promoText}>ÖNE ÇIKAN</Text></View>}
-                      </View>
-                      <Text style={styles.shopDistance}>
-                        {item.rating.toFixed(1)} ⭐ • {item.distance !== undefined ? (item.distance > 1000 ? (item.distance/1000).toFixed(1) + ' km' : item.distance + ' m') : 'Bilinmiyor'}
-                      </Text>
-                    </View>
-                  </TouchableOpacity>
-                )} 
-              />
-            </View>
+            <ShopsScreen
+              dynamicBarbers={dynamicBarbers}
+              sortOption={sortOption}
+              setSortOption={setSortOption}
+              setSelectedCategory={setSelectedCategory}
+              setSelectedBarber={setSelectedBarber}
+            />
           )}
 
           {activeTab === 'appointments' && (
@@ -970,468 +925,124 @@ export default function App() {
       {/* --- İŞLETME PANELİ (FULL) --- */}
       {activeTab === 'owner_panel' && (
         <View style={styles.tabPadding}>
-          {!ownerShopDb ? (
-            <View style={styles.centerContainer}>
-              <Ionicons name="time" size={60} color="#ccc" />
-              <Text style={[styles.tabTitle, { marginTop: 20, textAlign: 'center' }]}>ONAY BEKLENİYOR</Text>
-              <Text style={{ color: '#666', textAlign: 'center', marginTop: 10, paddingHorizontal: 20 }}>
-                İşletme hesabınız oluşturuldu. Sistem yöneticisi dükkanınızı haritaya ekleyip size atadığında bu panel aktif olacaktır.
-              </Text>
-              <TouchableOpacity style={styles.logoutBtn} onPress={() => { setCurrentUsername(null); setAuthState('login'); }}>
-                <Text style={{ color: 'red', fontWeight: 'bold' }}>Hesaptan Çıkış Yap</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 60 }} showsVerticalScrollIndicator={false}>
-              <View style={styles.ownerTopHeader}>
-                <View><Text style={styles.ownerShopName}>{ownerShop.name}</Text><Text style={{ color: '#aaa' }}>Kategori: {ownerShopDb.category?.toUpperCase()}</Text></View>
-                <View style={{flexDirection: 'row', gap: 10}}>
-                  <View style={styles.viewBadge}><Ionicons name="eye" size={14} color="#7d5fff" /><Text style={styles.viewText}>{ownerShop.views}</Text></View>
-                  <View style={styles.viewBadge}><Ionicons name="wallet" size={14} color="#2ed573" /><Text style={styles.viewText}>{user.balance} TL</Text></View>
-                </View>
-              </View>
-
-              <View style={styles.promoPanel}>
-                <Text style={styles.panelTitle}>Sponsorlu Öne Çıkarma</Text>
-                {ownerShopDb.promotion_status === 'approved' ? (
-                  <View>
-                    <Text style={styles.timerText}>Dükkanınız Öne Çıkarıldı!</Text>
-                  </View>
-                ) : ownerShopDb.promotion_status === 'pending' ? (
-                  <View>
-                    <Text style={styles.timerText}>İsteğiniz İnceleniyor...</Text>
-                    <Text style={{color:'#fff', textAlign:'center', fontSize:12}}>Admin onayı bekleniyor.</Text>
-                  </View>
-                ) : (
-                  <View>
-                    <Text style={styles.promoDesc}>Listede en üstte gözükmek için onay isteği gönderin.</Text>
-                    <TouchableOpacity style={styles.startBtn} onPress={handleRequestPromotion}>
-                      <Text style={styles.startBtnText}>ÖNE ÇIKARMA İSTE (100 TL)</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-
-              <View style={styles.ownerSectionHead}>
-                <Text style={styles.sectionTitle}>MAĞAZA VİTRİNİ</Text>
-              </View>
-              <View style={{ backgroundColor: '#f9f9f9', padding: 20, borderRadius: 15, marginBottom: 25 }}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginBottom: 15}}>
-                  {localImages.map((img, i) => (
-                    <View key={i} style={{ position: 'relative' }}>
-                      <Image source={{uri: img}} style={{ width: 120, height: 120, borderRadius: 12, marginRight: 10, resizeMode: 'cover' }} />
-                      <TouchableOpacity style={{ position: 'absolute', top: 5, right: 15, backgroundColor: 'rgba(255,0,0,0.8)', padding: 5, borderRadius: 15, zIndex: 10 }} onPress={() => {
-                        setLocalImages(localImages.filter((_, idx) => idx !== i));
-                      }}>
-                        <Ionicons name="trash" size={16} color="#fff" />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                  <TouchableOpacity style={[styles.expPickerPlaceholder, {width: 120, height: 120, marginRight: 10, marginBottom: 0}]} onPress={() => pickImage((uri) => {
-                     setLocalImages(prev => [...prev, uri]);
-                  }, [16, 9])}>
-                    <Ionicons name="add" size={40} color="#ccc" />
-                    <Text style={{color:'#aaa', fontSize:12, marginTop:8, textAlign:'center'}}>Fotoğraf Ekle</Text>
-                  </TouchableOpacity>
-                </ScrollView>
-                <TouchableOpacity style={[styles.payBtn, { marginBottom: 20 }]} onPress={async () => { 
-                   const { error } = await supabase.from('shops').update({ image_url: JSON.stringify(localImages) }).eq('id', ownerShopDb.id);
-                   if (!error) { 
-                     setOwnerShopDb({...ownerShopDb, image_url: JSON.stringify(localImages)}); 
-                     showNotification("Vitrin fotoğrafları kaydedildi! ✅"); 
-                   } else {
-                     showNotification("Hata: " + error.message);
-                   }
-                }}>
-                  <Text style={styles.payBtnText}>FOTOĞRAFLARI KAYDET</Text>
-                </TouchableOpacity>
-
-                <Text style={{ fontWeight:'bold', marginBottom:10 }}>Çalışma Saatleri (Müşterilerin Seçebileceği Saatler)</Text>
-                <View style={{flexDirection:'row', flexWrap:'wrap', gap:10}}>
-                   {["09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"].map(t => {
-                      const isActive = (ownerShopDb.working_hours || ["09:00", "11:00", "13:00", "15:00", "17:00"]).includes(t);
-                      return (
-                        <TouchableOpacity key={t} style={[styles.slot, isActive && styles.selected, {minWidth:70, padding:10, marginBottom: 5}]} onPress={async () => {
-                           const currentHours = ownerShopDb.working_hours || ["09:00", "11:00", "13:00", "15:00", "17:00"];
-                           const newHours = isActive ? currentHours.filter((h:string) => h !== t) : [...currentHours, t].sort();
-                           const { error } = await supabase.from('shops').update({ working_hours: newHours }).eq('id', ownerShopDb.id);
-                           if (!error) { setOwnerShopDb({...ownerShopDb, working_hours: newHours}); showNotification("Saatler kaydedildi."); }
-                        }}>
-                          <Text style={[styles.slotText, isActive && { color: '#fff' }]}>{t}</Text>
-                        </TouchableOpacity>
-                      )
-                   })}
-                </View>
-              </View>
-
-              <View style={styles.ownerSectionHead}>
-                <Text style={styles.sectionTitle}>GELEN RANDEVULAR</Text>
-                <View style={{flexDirection:'row', gap:10, alignItems: 'center'}}>
-                  <TouchableOpacity onPress={async () => {
-                     const { data: oApps } = await supabase.from('appointments').select('*, profiles(full_name)').eq('shop_id', ownerShopDb.id).order('created_at', { ascending: false });
-                     const mappedDb = (oApps || []).map((a: any) => ({
-                        id: a.id, shopId: a.shop_id, barberName: ownerShopDb.name,
-                        customerName: a.profiles?.full_name || 'Müşteri',
-                        date: new Date(a.appointment_date).toLocaleDateString(),
-                        time: new Date(a.appointment_date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-                        price: a.price, type: ownerShopDb.category, status: a.status
-                     }));
-                     
-                     let manualApps = [];
-                     try {
-                       const mData = await AsyncStorage.getItem('hopop_manual_apps_' + ownerShopDb.id);
-                       if (mData) manualApps = JSON.parse(mData);
-                     } catch(e) {}
-                     
-                     setOwnerAppointments([...mappedDb, ...manualApps]);
-                     showNotification("Randevular yenilendi!");
-                  }}>
-                    <Ionicons name="refresh" size={20} color="#000" />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => setShowManualAddModal(true)}><Text style={styles.addManualText}>+ ELLE EKLE</Text></TouchableOpacity>
-                </View>
-              </View>
-              {ownerAppointments.filter(a => a.status === 'pending' || a.status === 'confirmed').length === 0 ? (
-                 <Text style={{ color: '#aaa', textAlign: 'center', marginVertical: 20 }}>Randevu yok.</Text>
-              ) : (
-                 ownerAppointments.filter(a => a.status === 'pending' || a.status === 'confirmed').map(item => (
-                  <View key={item.id} style={styles.ownerAppCard}>
-                    <View>
-                      <Text style={{ fontWeight: 'bold' }}>{item.customerName}</Text>
-                      <Text style={{ color: '#aaa', fontSize: 12 }}>{item.date} • {item.time}</Text>
-                    </View>
-                    <View style={{ alignItems: 'flex-end' }}>
-                       {item.status === 'confirmed' ? <Ionicons name="checkmark-circle" size={24} color="#2ed573" /> : <Text style={{color:'#f39c12', fontWeight:'bold', fontSize:12}}>BEKLİYOR (Ödendi)</Text>}
-                    </View>
-                  </View>
-                 ))
-              )}
-              <View style={[styles.ownerSectionHead, { marginTop: 20 }]}>
-                <Text style={styles.sectionTitle}>MAĞAZA YORUMLARI</Text>
-              </View>
-              {(() => {
-                const ownerReviews = Object.values(globalReviews).flat().filter(r => r.shopId === ownerShopDb.id || r.shopName === ownerShopDb.name);
-                return ownerReviews.length === 0 ? (
-                  <Text style={{color:'#aaa', marginBottom: 20}}>Henüz mağazanıza yapılmış bir değerlendirme bulunmuyor.</Text>
-                ) : (
-                  <View style={{ marginBottom: 20 }}>
-                    {ownerReviews.map(r => {
-                      const isDeleteRequested = deleteRequests.some(req => req.reviewId === r.id);
-                    return (
-                      <View key={r.id} style={{ backgroundColor: '#f9f9f9', padding: 15, borderRadius: 12, marginBottom: 10 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-                          <Image source={{ uri: r.userAvatar || 'https://i.pravatar.cc/150' }} style={{ width: 30, height: 30, borderRadius: 15, marginRight: 10 }} />
-                          <View>
-                            <Text style={{ fontWeight: 'bold' }}>{r.user}</Text>
-                            <Text style={{ color: '#aaa', fontSize: 10 }}>{r.date}</Text>
-                          </View>
-                          <Text style={{ marginLeft: 'auto', color: '#f39c12' }}>{'⭐'.repeat(r.star)}</Text>
-                        </View>
-                        <Text style={{ color: '#333', marginBottom: 10 }}>{r.comment}</Text>
-                        {r.imageUrl && <Image source={{uri: r.imageUrl}} style={{width: '100%', height: 200, resizeMode: 'contain', borderRadius: 10, marginBottom: 10}} />}
-                        <TouchableOpacity 
-                          style={{ backgroundColor: isDeleteRequested ? '#ccc' : '#ff4757', padding: 10, borderRadius: 8, alignItems: 'center' }} 
-                          disabled={isDeleteRequested}
-                          onPress={() => handleDeleteRequest(r.id, ownerShopDb.id, ownerShopDb.name, r.comment)}
-                        >
-                          <Text style={{ color: '#fff', fontWeight: 'bold' }}>{isDeleteRequested ? "SİLME İSTEĞİ GÖNDERİLDİ" : "YORUMU SİL (ONAYA GÖNDER)"}</Text>
-                        </TouchableOpacity>
-                      </View>
-                    );
-                  })}
-                </View>
-                );
-              })()}
-              <TouchableOpacity style={styles.logoutBtn} onPress={() => { setCurrentUsername(null); setAuthState('login'); }}><Text style={{ color: 'red', fontWeight:'bold', marginBottom:40 }}>Panelden Çıkış</Text></TouchableOpacity>
-            </ScrollView>
-          )}
+          <OwnerPanelScreen
+            ownerShopDb={ownerShopDb}
+            ownerShop={ownerShop}
+            user={user}
+            localImages={localImages}
+            setLocalImages={setLocalImages}
+            pickImage={pickImage}
+            setOwnerShopDb={setOwnerShopDb}
+            showNotification={showNotification}
+            handleRequestPromotion={handleRequestPromotion}
+            ownerAppointments={ownerAppointments}
+            setOwnerAppointments={setOwnerAppointments}
+            setShowManualAddModal={setShowManualAddModal}
+            globalReviews={globalReviews}
+            deleteRequests={deleteRequests}
+            handleDeleteRequest={handleDeleteRequest}
+            onLogout={() => { setCurrentUsername(null); setAuthState('login'); }}
+          />
         </View>
       )}
 
       {/* --- ADMİN PANELİ (SİSTEM) --- */}
       {activeTab === 'admin_panel' && (
-        <ScrollView style={styles.tabPadding} showsVerticalScrollIndicator={false}>
-          <Text style={styles.tabTitle}>SİSTEM YÖNETİMİ</Text>
-          
-          <View style={styles.promoPanel}>
-            <Text style={styles.panelTitle}>ÖNE ÇIKARMA İSTEKLERİ</Text>
-            {promoRequests.length === 0 ? <Text style={{color:'#aaa'}}>Bekleyen istek yok.</Text> : promoRequests.map(req => (
-              <View key={req.id} style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', backgroundColor:'rgba(255,255,255,0.1)', padding:10, borderRadius:8, marginBottom:10}}>
-                <Text style={{color:'#fff', fontWeight:'bold'}}>{req.name}</Text>
-                <TouchableOpacity style={{backgroundColor:'#2ed573', padding:8, borderRadius:5}} onPress={() => handleApprovePromotion(req.id)}>
-                  <Text style={{color:'#fff', fontSize:12, fontWeight:'bold'}}>ONAYLA</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </View>
-
-          <View style={[styles.promoPanel, { backgroundColor: '#ff4757' }]}>
-            <Text style={styles.panelTitle}>YORUM SİLME İSTEKLERİ</Text>
-            {deleteRequests.length === 0 ? <Text style={{color:'#fff', opacity: 0.8}}>Bekleyen silme isteği yok.</Text> : deleteRequests.map(req => (
-              <View key={req.reviewId} style={{backgroundColor:'rgba(255,255,255,0.1)', padding:10, borderRadius:8, marginBottom:10}}>
-                <Text style={{color:'#fff', fontWeight:'bold', marginBottom: 5}}>{req.shopName}</Text>
-                <Text style={{color:'#fff', opacity:0.8, fontSize:12, marginBottom: 10}}>{req.comment}</Text>
-                <View style={{flexDirection:'row', gap: 10}}>
-                  <TouchableOpacity style={{backgroundColor:'#2ed573', padding:8, borderRadius:5, flex:1, alignItems:'center'}} onPress={() => approveDeleteRequest(req.reviewId, req.shopId)}>
-                    <Text style={{color:'#fff', fontSize:12, fontWeight:'bold'}}>ONAYLA (SİL)</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={{backgroundColor:'#ccc', padding:8, borderRadius:5, flex:1, alignItems:'center'}} onPress={() => rejectDeleteRequest(req.reviewId)}>
-                    <Text style={{color:'#333', fontSize:12, fontWeight:'bold'}}>REDDET</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
-          </View>
-
-          <Text style={styles.sectionTitle}>YENİ DÜKKAN EKLE</Text>
-          <View style={{ height: 350, borderRadius: 15, overflow: 'hidden', marginBottom: 15 }}>
-            <AdminMap style={{ flex: 1 }} selectedLocation={newShopLocation} onMapPress={(e: any) => setNewShopLocation(e.nativeEvent.coordinate)} systemShops={systemShops} />
-          </View>
-          <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="İşletmecinin Kullanıcı Adı (Örn: emre123)" value={newShopOwnerUsername} onChangeText={setNewShopOwnerUsername} autoCapitalize="none" />
-          <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Dükkan Adı" value={newShopData.name} onChangeText={(t) => setNewShopData({...newShopData, name: t})} />
-          <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Kategori (berber, kuaför, tırnak, güzellik)" value={newShopCategory} onChangeText={setNewShopCategory} autoCapitalize="none" />
-          <TextInput style={[styles.authInput, { height: 60 }]} placeholderTextColor="#555" placeholder="Hizmet Açıklaması" value={newShopData.description} onChangeText={(t) => setNewShopData({...newShopData, description: t})} multiline />
-          <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Açık Adres" value={newShopData.address} onChangeText={(t) => setNewShopData({...newShopData, address: t})} />
-          <TouchableOpacity style={styles.authPrimaryBtn} onPress={handleCreateShop}>
-            <Text style={styles.authPrimaryBtnText}>DÜKKANI SİSTEME EKLE</Text>
-          </TouchableOpacity>
-
-          <Text style={[styles.sectionTitle, {marginTop: 30}]}>SİSTEMDEKİ DÜKKANLAR VE YORUMLARI</Text>
-          {systemShops.map(shop => (
-             <View key={shop.id} style={{padding:15, backgroundColor:'#f9f9f9', borderRadius:10, marginBottom:10}}>
-               <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom: 10}}>
-                 <Text style={{fontWeight:'bold', fontSize:16}}>{shop.name}</Text>
-                 <TouchableOpacity onPress={() => handleDeleteShop(shop.id)}><Ionicons name="trash" size={20} color="#ff4757" /></TouchableOpacity>
-               </View>
-               <TouchableOpacity style={{backgroundColor:'#3498db', padding:8, borderRadius:5, alignItems:'center', marginBottom: 10}} onPress={() => { setReviewTarget({id: '', shopId: shop.id, barberName: shop.name, date: '', time: '', price: 0, type: '', customerName: '', status: 'active'}); setReviewData({star: 5, comment: '', imageUrl: ''}); setShowAddExperienceModal(true); }}>
-                  <Text style={{color:'#fff', fontSize:12, fontWeight:'bold'}}>+ BU DÜKKANA YORUM EKLE</Text>
-               </TouchableOpacity>
-               {(globalReviews[shop.id] || []).length === 0 ? <Text style={{color:'#aaa', fontSize: 12}}>Yorum yok.</Text> : (globalReviews[shop.id] || []).map(r => (
-                  <View key={r.id} style={{backgroundColor:'#fff', padding:10, borderRadius:8, marginBottom:8, borderWidth: 1, borderColor: '#eee'}}>
-                    <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center'}}>
-                      <Text style={{fontWeight:'bold', fontSize: 12}}>{r.user} • {'⭐'.repeat(r.star)}</Text>
-                      <TouchableOpacity onPress={() => deleteReviewDirectly(r.id, shop.id)}><Ionicons name="trash" size={16} color="#ff4757" /></TouchableOpacity>
-                    </View>
-                    <Text style={{color:'#666', fontSize: 11, marginTop: 4}}>{r.comment}</Text>
-                  </View>
-               ))}
-             </View>
-          ))}
-          
-          <TouchableOpacity style={styles.logoutBtn} onPress={() => { setCurrentUsername(null); setAuthState('login'); }}><Text style={{ color: 'red', fontWeight:'bold', marginBottom:40 }}>Çıkış Yap</Text></TouchableOpacity>
-        </ScrollView>
+        <AdminPanelScreen
+          promoRequests={promoRequests}
+          handleApprovePromotion={handleApprovePromotion}
+          deleteRequests={deleteRequests}
+          approveDeleteRequest={approveDeleteRequest}
+          rejectDeleteRequest={rejectDeleteRequest}
+          newShopLocation={newShopLocation}
+          setNewShopLocation={setNewShopLocation}
+          systemShops={systemShops}
+          newShopOwnerUsername={newShopOwnerUsername}
+          setNewShopOwnerUsername={setNewShopOwnerUsername}
+          newShopData={newShopData}
+          setNewShopData={setNewShopData}
+          newShopCategory={newShopCategory}
+          setNewShopCategory={setNewShopCategory}
+          handleCreateShop={handleCreateShop}
+          handleDeleteShop={handleDeleteShop}
+          setReviewTarget={setReviewTarget}
+          setReviewData={setReviewData}
+          setShowAddExperienceModal={setShowAddExperienceModal}
+          globalReviews={globalReviews}
+          deleteReviewDirectly={deleteReviewDirectly}
+          onLogout={() => { setCurrentUsername(null); setAuthState('login'); }}
+        />
       )}
 
       {/* MODALLAR */}
-      {selectedBarber && (
-        <Modal visible={!!selectedBarber} animationType="slide">
-          <View style={{ flex: 1, backgroundColor: '#fff' }} onLayout={(e) => {
-             if(!selectedBarber.modalWidth) setSelectedBarber({...selectedBarber, modalWidth: e.nativeEvent.layout.width});
-          }}>
-            <View style={{ height: 250, position: 'relative' }}>
-              <Image source={{ uri: selectedBarber.images[modalImageIndex] }} style={{ width: selectedBarber.modalWidth || Dimensions.get('window').width, height: 250, resizeMode: 'contain', backgroundColor: '#000' }} />
-              
-              {selectedBarber.images.length > 1 && (
-                <>
-                  {modalImageIndex > 0 && (
-                    <TouchableOpacity style={{ position: 'absolute', left: 10, top: 110, backgroundColor: 'rgba(0,0,0,0.5)', padding: 10, borderRadius: 20 }} onPress={() => setModalImageIndex(modalImageIndex - 1)}>
-                      <Ionicons name="chevron-back" size={24} color="#fff" />
-                    </TouchableOpacity>
-                  )}
-                  {modalImageIndex < selectedBarber.images.length - 1 && (
-                    <TouchableOpacity style={{ position: 'absolute', right: 10, top: 110, backgroundColor: 'rgba(0,0,0,0.5)', padding: 10, borderRadius: 20 }} onPress={() => setModalImageIndex(modalImageIndex + 1)}>
-                      <Ionicons name="chevron-forward" size={24} color="#fff" />
-                    </TouchableOpacity>
-                  )}
-                </>
-              )}
-              
-              <TouchableOpacity style={styles.closeBtn} onPress={() => { setSelectedBarber(null); setModalImageIndex(0); }}><Ionicons name="close" size={24} color="white" /></TouchableOpacity>
-            </View>
-            <ScrollView style={{ padding: 20 }}>
-              <Text style={styles.detailName}>{selectedBarber.name}</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-                <View style={[styles.categoryBadge, { backgroundColor: selectedBarber.type === 'berber' ? '#3498db' : selectedBarber.type === 'kuaför' ? '#e84393' : selectedBarber.type === 'tırnak' ? '#fd79a8' : '#a29bfe' }]}>
-                  <Text style={{ color: '#fff', fontSize: 11, fontWeight: 'bold' }}>{selectedBarber.type === 'berber' ? 'BERBER' : selectedBarber.type === 'kuaför' ? 'KUAFÖR' : selectedBarber.type === 'tırnak' ? 'NAIL ART' : 'GÜZELLİK'}</Text>
-                </View>
-                <Text style={{ marginLeft: 10, fontSize: 15, color: '#f39c12' }}>⭐ {selectedBarber.rating.toFixed(1)}</Text>
-              </View>
+      <BarberDetailModal
+        selectedBarber={selectedBarber}
+        setSelectedBarber={setSelectedBarber}
+        modalImageIndex={modalImageIndex}
+        setModalImageIndex={setModalImageIndex}
+        selectedTime={selectedTime}
+        setSelectedTime={setSelectedTime}
+        userRole={userRole}
+        handlePayment={handlePayment}
+        showNotification={showNotification}
+        globalReviews={globalReviews}
+      />
 
-              {selectedBarber.address ? <View style={styles.detailRow}><Ionicons name="location" size={18} color="#666" /><Text style={styles.detailRowText}>{selectedBarber.address}</Text></View> : null}
-              {selectedBarber.phone ? <View style={styles.detailRow}><Ionicons name="call" size={18} color="#666" /><Text style={styles.detailRowText}>{selectedBarber.phone}</Text></View> : null}
-              {selectedBarber.openingHours ? <View style={styles.detailRow}><Ionicons name="time" size={18} color="#666" /><Text style={styles.detailRowText}>{selectedBarber.openingHours}</Text></View> : null}
-              {selectedBarber.website ? <View style={styles.detailRow}><Ionicons name="globe" size={18} color="#666" /><Text style={[styles.detailRowText, { color: '#3498db' }]} numberOfLines={1}>{selectedBarber.website}</Text></View> : null}
-              {selectedBarber.description ? <Text style={{ color: '#555', fontSize: 13, marginTop: 10, lineHeight: 20 }}>{selectedBarber.description}</Text> : null}
+      <TopUpModal
+        showTopUpModal={showTopUpModal}
+        setShowTopUpModal={setShowTopUpModal}
+        topUpAmount={topUpAmount}
+        setTopUpAmount={setTopUpAmount}
+        user={user}
+        setUser={setUser}
+        currentUsername={currentUsername}
+        updateUserInDb={updateUserInDb}
+        showNotification={showNotification}
+      />
 
-              <Text style={styles.sectionTitle}>SAAT SEÇİN (350 TL)</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {(selectedBarber.working_hours || ["09:00", "11:00", "13:00", "15:00", "17:00"]).map((t: string) => (
-                  <TouchableOpacity key={t} style={[styles.slot, selectedTime === t && styles.selected]} onPress={() => setSelectedTime(t)}>
-                    <Text style={[styles.slotText, selectedTime === t && { color: '#fff' }]}>{t}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+      <ManualAddModal
+        showManualAddModal={showManualAddModal}
+        setShowManualAddModal={setShowManualAddModal}
+        manualCustName={manualCustName}
+        setManualCustName={setManualCustName}
+        manualTime={manualTime}
+        setManualTime={setManualTime}
+        ownerShopDb={ownerShopDb}
+        ownerAppointments={ownerAppointments}
+        setOwnerAppointments={setOwnerAppointments}
+        showNotification={showNotification}
+      />
 
-              <TouchableOpacity style={[styles.payBtn, { marginBottom: 20 }]} onPress={() => {
-                if (userRole === 'customer') {
-                  handlePayment();
-                } else {
-                  showNotification("Sadece müşteriler randevu alabilir.");
-                }
-              }}>
-                <Text style={styles.payBtnText}>RANDEVU AL VE ÖDEMEYE GEÇ (₺350)</Text>
-              </TouchableOpacity>
+      <EditProfileModal
+        showEditProfileModal={showEditProfileModal}
+        setShowEditProfileModal={setShowEditProfileModal}
+        editProfileData={editProfileData}
+        setEditProfileData={setEditProfileData}
+        pickImage={pickImage}
+        user={user}
+        setUser={setUser}
+        currentUsername={currentUsername}
+        updateUserInDb={updateUserInDb}
+        showNotification={showNotification}
+      />
 
-              <Text style={[styles.sectionTitle, { marginTop: 20 }]}>MÜŞTERİ DENEYİMLERİ</Text>
-              {(globalReviews[selectedBarber.id] || []).length === 0 ? <Text style={{color:'#aaa', marginBottom: 20}}>Henüz değerlendirme yok.</Text> : (
-                <View style={{ marginBottom: 20 }}>
-                  {(globalReviews[selectedBarber.id] || []).map(r => (
-                    <View key={r.id} style={{ backgroundColor: '#f9f9f9', padding: 15, borderRadius: 12, marginBottom: 10 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-                        <Image source={{ uri: r.userAvatar || 'https://i.pravatar.cc/150' }} style={{ width: 30, height: 30, borderRadius: 15, marginRight: 10 }} />
-                        <View>
-                          <Text style={{ fontWeight: 'bold' }}>{r.user}</Text>
-                          <Text style={{ color: '#aaa', fontSize: 10 }}>{r.date}</Text>
-                        </View>
-                        <Text style={{ marginLeft: 'auto', color: '#f39c12' }}>{'⭐'.repeat(r.star)}</Text>
-                      </View>
-                      <Text style={{ color: '#333' }}>{r.comment}</Text>
-                      {r.imageUrl && <Image source={{uri: r.imageUrl}} style={{width: '100%', height: 200, resizeMode: 'contain', borderRadius: 10, marginTop: 10}} />}
-                    </View>
-                  ))}
-                </View>
-              )}
-            </ScrollView>
-          </View>
-        </Modal>
-      )}
-
-      <Modal visible={showTopUpModal} transparent animationType="fade"><View style={styles.modalOverlay}><View style={styles.paymentCard}><Text style={styles.modalTitle}>BAKİYE YÜKLE</Text><TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Yüklenecek Tutar" keyboardType="numeric" value={topUpAmount} onChangeText={setTopUpAmount} /><View style={{flexDirection:'row', gap:10}}><TouchableOpacity style={[styles.payBtn, {backgroundColor: '#ccc', flex:1}]} onPress={() => setShowTopUpModal(false)}><Text style={styles.payBtnText}>İPTAL</Text></TouchableOpacity><TouchableOpacity style={[styles.payBtn, {flex: 1}]} onPress={() => { const amt = parseFloat(topUpAmount) || 100; const newB = user.balance + amt; setUser({ ...user, balance: newB }); if(currentUsername) updateUserInDb(currentUsername, { balance: newB }); setShowTopUpModal(false); setTopUpAmount(''); showNotification(`${amt} TL Yüklendi!`); }}><Text style={styles.payBtnText}>YÜKLE</Text></TouchableOpacity></View></View></View></Modal>
-
-      <Modal visible={showManualAddModal} transparent animationType="slide"><View style={styles.modalOverlay}><View style={styles.paymentCard}><Text style={styles.modalTitle}>MANUEL RANDEVU</Text><TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Müşteri Adı" value={manualCustName} onChangeText={setManualCustName} /><TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Saat (Örn: 10:30)" value={manualTime} onChangeText={setManualTime} /><View style={{flexDirection:'row', gap:10}}><TouchableOpacity style={[styles.payBtn, {backgroundColor: '#ccc', flex:1}]} onPress={() => setShowManualAddModal(false)}><Text style={styles.payBtnText}>İPTAL</Text></TouchableOpacity><TouchableOpacity style={[styles.payBtn, {flex:1}]} onPress={async () => { 
-        if (!manualCustName.trim() || !manualTime.trim()) { Alert.alert("Hata", "Lütfen isim ve saat girin."); return; }
-        const newApp: Appointment = { id: 'm_' + Math.random().toString(), shopId: ownerShopDb?.id || 'osm-1', barberName: '', date: 'Bugün', time: manualTime, price: 0, type: '', customerName: manualCustName + ' (Elle)', status: 'confirmed' };
-        const updatedApps = [newApp, ...ownerAppointments];
-        setOwnerAppointments(updatedApps);
-        try {
-          const mData = await AsyncStorage.getItem('hopop_manual_apps_' + ownerShopDb?.id);
-          const manualApps = mData ? JSON.parse(mData) : [];
-          await AsyncStorage.setItem('hopop_manual_apps_' + ownerShopDb?.id, JSON.stringify([newApp, ...manualApps]));
-        } catch(e) {}
-        setShowManualAddModal(false); 
-        setManualCustName('');
-        setManualTime('');
-        showNotification("Manuel randevu eklendi.");
-      }}><Text style={styles.payBtnText}>KAYDET</Text></TouchableOpacity></View></View></View></Modal>
-
-      <Modal visible={showEditProfileModal} transparent animationType="slide">
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={styles.paymentCard}>
-            <Text style={styles.modalTitle}>PROFİLİ DÜZENLE</Text>
-            <TouchableOpacity style={styles.avatarEditContainer} onPress={() => pickImage(uri => setEditProfileData({...editProfileData, avatar: uri}))}>
-                <Image source={{ uri: editProfileData.avatar }} style={styles.editAvatarImg} />
-                <View style={styles.avatarEditOverlay}>
-                  <Ionicons name="camera" size={20} color="#fff" />
-                </View>
-              </TouchableOpacity>
-              <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Ad Soyad" value={editProfileData.name} onChangeText={(t) => setEditProfileData({...editProfileData, name: t})} />
-              <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Kullanıcı Adı" value={editProfileData.username} onChangeText={(t) => setEditProfileData({...editProfileData, username: t})} autoCapitalize="none" />
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <TouchableOpacity style={[styles.payBtn, { backgroundColor: '#ccc', flex: 1 }]} onPress={() => setShowEditProfileModal(false)}><Text style={styles.payBtnText}>İPTAL</Text></TouchableOpacity>
-                <TouchableOpacity style={[styles.payBtn, { flex: 1 }]} onPress={() => {
-                  const newAvatar = editProfileData.avatar;
-                  setUser(prev => ({ ...prev, name: editProfileData.name, username: editProfileData.username, avatar: newAvatar }));
-                  if (currentUsername) { updateUserInDb(currentUsername, { name: editProfileData.name, username: editProfileData.username, avatar: newAvatar }); }
-                  setShowEditProfileModal(false);
-                  showNotification("Profil güncellendi! ✅");
-                }}><Text style={styles.payBtnText}>KAYDET</Text></TouchableOpacity>
-              </View>
-            </View>
-          </KeyboardAvoidingView>
-      </Modal>
-
-      <Modal visible={showAddExperienceModal} transparent animationType="slide">
-        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={styles.paymentCard}>
-            <Text style={styles.modalTitle}>DENEYİM DEĞERLENDİR</Text>
-              <Text style={{fontWeight: 'bold', fontSize: 16, textAlign: 'center', marginBottom: 15}}>{reviewTarget?.barberName}</Text>
-              {authError ? <Text style={{color: 'red', textAlign: 'center', marginBottom: 10}}>{authError}</Text> : null}
-              
-              <View style={{flexDirection: 'row', justifyContent: 'center', marginBottom: 20}}>
-                {[1,2,3,4,5].map(s => (
-                  <TouchableOpacity key={s} onPress={() => setReviewData({...reviewData, star: s})}>
-                    <Text style={{fontSize: 30, color: s <= reviewData.star ? '#f39c12' : '#ccc', marginHorizontal: 5}}>★</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <TouchableOpacity style={{flexDirection: 'row', alignItems: 'center', marginBottom: 20}} onPress={() => pickImage(uri => setReviewData({...reviewData, imageUrl: uri}))}>
-                {reviewData.imageUrl ? 
-                  <Image source={{ uri: reviewData.imageUrl }} style={{width: 80, height: 80, borderRadius: 12, marginRight: 15, backgroundColor: '#eee'}} />
-                  : <View style={{width: 80, height: 80, borderRadius: 12, marginRight: 15, backgroundColor: '#eee', justifyContent:'center', alignItems:'center'}}><Ionicons name="camera" size={30} color="#ccc"/></View>
-                }
-                <View><Text style={{fontWeight: 'bold', color: '#7d5fff'}}>Fotoğraf Ekle (İsteğe Bağlı)</Text></View>
-              </TouchableOpacity>
-              
-              <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Yorumunuz (İsteğe Bağlı)" value={reviewData.comment} onChangeText={(t) => setReviewData({...reviewData, comment: t})} multiline />
-              
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                <TouchableOpacity style={[styles.payBtn, { backgroundColor: '#ccc', flex: 1 }]} onPress={() => setShowAddExperienceModal(false)}><Text style={styles.payBtnText}>İPTAL</Text></TouchableOpacity>
-                <AnimatedPressable style={[styles.payBtn, { flex: 1 }]} onPress={async () => { 
-                  if(reviewTarget) {
-                    const isValidUuid = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-                    const apptId = isValidUuid(reviewTarget.id) ? reviewTarget.id : null;
-                    const shopId = isValidUuid(reviewTarget.shopId) ? reviewTarget.shopId : null;
-
-                    if (!shopId) {
-                      setAuthError("Bu dükkan veritabanında gerçek bir kimliğe sahip değil (Eski/Mock dükkan). Yorum yapılamaz.");
-                      return;
-                    }
-
-                    const { data: newDbRev, error } = await supabase.from('reviews').insert({
-                      shop_id: shopId,
-                      user_id: user.id,
-                      appointment_id: apptId,
-                      comment: reviewData.comment || 'Puanlandı.',
-                      star: reviewData.star,
-                      image_url: reviewData.imageUrl
-                    }).select('*, profiles(full_name, avatar_url), shops(name)').single();
-
-                    if (!error && newDbRev) {
-                      const rev: Review = {
-                        id: newDbRev.id,
-                        user: newDbRev.profiles?.full_name || user.name,
-                        userAvatar: newDbRev.profiles?.avatar_url || user.avatar,
-                        shopId: newDbRev.shop_id,
-                        shopName: newDbRev.shops?.name || reviewTarget.barberName,
-                        appointmentId: newDbRev.appointment_id,
-                        comment: newDbRev.comment,
-                        star: newDbRev.star,
-                        imageUrl: newDbRev.image_url,
-                        date: new Date(newDbRev.created_at).toLocaleDateString()
-                      };
-                      
-                      const shopReviews = [...(globalReviews[rev.shopId] || []), rev];
-                      const newGlobalReviews = {...globalReviews, [rev.shopId]: shopReviews};
-                      const newExps = [rev, ...userExperiences];
-                      
-                      setGlobalReviews(newGlobalReviews);
-                      setUserExperiences(newExps);
-                      updateAverageRating(rev.shopId, shopReviews);
-                      setAuthError('');
-                    } else {
-                      setAuthError("Yorum kaydedilemedi: " + (error?.message || 'Veritabanı hatası. SQL tablosunu oluşturduğunuzdan emin olun!'));
-                      return;
-                    }
-                  }
-                  setShowAddExperienceModal(false); 
-                  showNotification("Değerlendirme kaydedildi! 🎉"); 
-                  setAuthError('');
-                }}><Text style={styles.payBtnText}>GÖNDER</Text></AnimatedPressable>
-              </View>
-            </View>
-          </KeyboardAvoidingView>
-      </Modal>
+      <AddExperienceModal
+        showAddExperienceModal={showAddExperienceModal}
+        setShowAddExperienceModal={setShowAddExperienceModal}
+        reviewTarget={reviewTarget}
+        authError={authError}
+        setAuthError={setAuthError}
+        reviewData={reviewData}
+        setReviewData={setReviewData}
+        pickImage={pickImage}
+        user={user}
+        globalReviews={globalReviews}
+        setGlobalReviews={setGlobalReviews}
+        userExperiences={userExperiences}
+        setUserExperiences={setUserExperiences}
+        updateAverageRating={updateAverageRating}
+        showNotification={showNotification}
+      />
       <View style={styles.navBar}>
         {userRole === 'admin' ? (
           <>
