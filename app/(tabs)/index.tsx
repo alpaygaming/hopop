@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { LoginScreen } from '@/components/screens/LoginScreen';
 import { RegisterScreen } from '@/components/screens/RegisterScreen';
+import { ProfileScreen } from '@/components/screens/ProfileScreen';
 import { UserRole } from '@/types';
 
 // --- OVERPASS API (OpenStreetMap) ---
@@ -965,68 +966,20 @@ export default function App() {
           )}
 
           {activeTab === 'profile' && (
-            <ScrollView style={styles.tabPadding} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
-              <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-                <Text style={[styles.tabTitle, { color: 'black' }]}>PROFİLİM</Text>
-                <TouchableOpacity onPress={() => showNotification("Profil bilgileri güncel!")}>
-                  <Ionicons name="refresh" size={20} color="#000" />
-                </TouchableOpacity>
-              </View>
-              <View style={styles.profileHeader}>
-                <Image source={{ uri: user.avatar }} style={styles.profileAvatar} />
-                <View style={{ marginLeft: 15 }}>
-                  <Text style={{ fontSize: 18, fontWeight: 'bold' }}>{user.name}</Text>
-                  <Text style={styles.profileName}>@{user.username}</Text>
-                  <TouchableOpacity onPress={() => { setEditProfileData(user); setShowEditProfileModal(true); }} style={{ marginTop: 5 }}>
-                    <Text style={{ color: '#7d5fff', fontSize: 12, fontWeight: 'bold' }}>Profili Düzenle</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <View style={styles.walletCard}><Text style={{ color: '#fff', fontWeight: 'bold' }}>Bakiyem: ₺{user.balance}</Text><TouchableOpacity style={styles.topUpBtn} onPress={() => setShowTopUpModal(true)}><Text style={{ fontWeight: 'bold', fontSize: 12 }}>Bakiye Yükle</Text></TouchableOpacity></View>
-              
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, marginTop: 15 }}>
-                <Text style={[styles.sectionTitle, { marginVertical: 0 }]}>GEÇMİŞ RANDEVULARIM</Text>
-              </View>
-              {appointments.filter(a => a.status === 'past' || a.status === 'confirmed').length === 0 && <Text style={{ color: '#aaa', marginBottom: 20 }}>Değerlendirilecek randevu yok.</Text>}
-              {appointments.filter(a => a.status === 'past' || a.status === 'confirmed').map(app => {
-                const isReviewed = userExperiences.some(exp => exp.appointmentId === app.id);
-                return (
-                  <View key={app.id} style={{ backgroundColor: '#f9f9f9', padding: 15, borderRadius: 12, marginBottom: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <View>
-                      <Text style={{ fontWeight: 'bold' }}>{app.barberName}</Text>
-                      <Text style={{ color: '#666', fontSize: 12 }}>{app.date} • {app.time}</Text>
-                    </View>
-                    {isReviewed ? (
-                      <Text style={{ color: '#2ed573', fontSize: 10, fontWeight: 'bold' }}>DEĞERLENDİRİLDİ</Text>
-                    ) : (
-                      <TouchableOpacity style={{ backgroundColor: '#000', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }} onPress={() => { setReviewTarget(app); setReviewData({ star: 5, comment: '', imageUrl: '' }); setAuthError(''); setShowAddExperienceModal(true); }}>
-                        <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>DEĞERLENDİR</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                );
-              })}
-
-              <View style={styles.ownerSectionHead}>
-                <Text style={styles.sectionTitle}>DENEYİMLERİM (YORUMLARIN)</Text>
-              </View>
-              
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                {userExperiences.map(exp => (
-                  <View key={exp.id} style={styles.expCard}>
-                    {exp.imageUrl ? <Image source={{ uri: exp.imageUrl }} style={[styles.expImg, { resizeMode: 'contain' }]} /> : null}
-                    <Text style={{ fontWeight: 'bold', fontSize: 13, marginTop: 8 }}>{exp.shopName || (exp.shopId.includes('osm-') ? "Dükkan" : exp.shopId)}</Text>
-                    <Text style={{ color: '#f39c12', fontSize: 12 }}>{'⭐'.repeat(exp.star)}</Text>
-                    <Text style={styles.expText} numberOfLines={3}>{exp.comment}</Text>
-                  </View>
-                ))}
-              </ScrollView>
-              <TouchableOpacity style={styles.logoutBtn} onPress={() => { 
+            <ProfileScreen
+              user={user}
+              appointments={appointments}
+              userExperiences={userExperiences}
+              onRefreshProfile={() => showNotification("Profil bilgileri güncel!")}
+              onEditProfile={() => { setEditProfileData(user); setShowEditProfileModal(true); }}
+              onTopUp={() => setShowTopUpModal(true)}
+              onAddReview={(app) => { setReviewTarget(app); setReviewData({ star: 5, comment: '', imageUrl: '' }); setAuthError(''); setShowAddExperienceModal(true); }}
+              onLogout={() => { 
                 if (currentUsername) { updateUserInDb(currentUsername, { balance: user.balance, experiences: userExperiences, appointments }); }
                 setCurrentUsername(null);
                 setAuthState('login'); 
-              }}><Text style={{ color: 'red', fontWeight: 'bold' }}>Çıkış Yap</Text></TouchableOpacity>
-            </ScrollView>
+              }}
+            />
           )}
         </View>
       )}
