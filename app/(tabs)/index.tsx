@@ -340,7 +340,6 @@ export default function App() {
 
     } catch (e) {
       console.log('Load error:', e);
-      setRegisteredUsers(DEFAULT_USERS);
     }
   }, []);
 
@@ -366,12 +365,6 @@ export default function App() {
   }, []);
 
   const updateUserInDb = useCallback(async (username: string, updates: Partial<RegisteredUser>) => {
-    setRegisteredUsers(prev => {
-      const updated = prev.map(u => u.username.toLowerCase() === username.toLowerCase() ? { ...u, ...updates } : u);
-      saveUsersToStorage(updated);
-      return updated;
-    });
-
     if (updates.name || updates.avatar) {
        const profileUpdates: any = {};
        if (updates.name) profileUpdates.full_name = updates.name;
@@ -381,7 +374,7 @@ export default function App() {
           await supabase.from('profiles').update(profileUpdates).eq('id', currentUser.id);
        }
     }
-  }, [saveUsersToStorage]);
+  }, []);
 
   const pickImage = async (setter: (uri: string) => void, aspect: [number, number] = [1, 1]) => {
     let result = await ImagePicker.launchImageLibraryAsync({

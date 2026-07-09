@@ -39,14 +39,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
           <Text style={{ ...typography.h3 }}>{user?.name}</Text>
           <Text style={styles.profileName}>@{user?.username}</Text>
           <AnimatedPressable onPress={onEditProfile} style={{ marginTop: spacing.xs }}>
-            <Text style={{ color: colors.accent.purple, ...typography.caption, fontWeight: 'bold' }}>Profili Düzenle</Text>
+            <Text style={{ color: colors.accent.purple, ...typography.caption }}>Profili Düzenle</Text>
           </AnimatedPressable>
         </View>
       </View>
       <View style={styles.walletCard}>
-        <Text style={{ color: colors.background, fontWeight: 'bold', ...typography.body }}>Bakiyem: ₺{user?.balance}</Text>
+        <Text style={{ color: colors.background, ...typography.body }}>Bakiyem: ₺{user?.balance}</Text>
         <AnimatedPressable style={styles.topUpBtn} onPress={onTopUp}>
-          <Text style={{ fontWeight: 'bold', ...typography.caption, color: colors.primary }}>Bakiye Yükle</Text>
+          <Text style={{ ...typography.caption, color: colors.primary }}>Bakiye Yükle</Text>
         </AnimatedPressable>
       </View>
       
@@ -59,14 +59,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
         return (
           <View key={app.id} style={{ backgroundColor: colors.surface, padding: spacing.lg, borderRadius: radius.md, marginBottom: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View>
-              <Text style={{ fontWeight: 'bold', ...typography.body }}>{app.barberName}</Text>
+              <Text style={{ ...typography.body }}>{app.barberName}</Text>
               <Text style={{ color: colors.text.muted, ...typography.caption }}>{app.date} • {app.time}</Text>
             </View>
             {isReviewed ? (
-              <Text style={{ color: colors.accent.green, ...typography.label, fontWeight: 'bold' }}>DEĞERLENDİRİLDİ</Text>
+              <Text style={{ color: colors.accent.green, ...typography.label }}>DEĞERLENDİRİLDİ</Text>
             ) : (
               <AnimatedPressable style={{ backgroundColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.sm }} onPress={() => onAddReview(app)}>
-                <Text style={{ color: colors.background, ...typography.label, fontWeight: 'bold' }}>DEĞERLENDİR</Text>
+                <Text style={{ color: colors.background, ...typography.label }}>DEĞERLENDİR</Text>
               </AnimatedPressable>
             )}
           </View>

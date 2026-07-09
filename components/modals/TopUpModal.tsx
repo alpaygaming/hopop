@@ -63,9 +63,9 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
 
 const styles = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: spacing.xl },
-  paymentCard: { backgroundColor: colors.background, padding: spacing.xxl, borderRadius: radius.xl, ...shadows.lg },
+  paymentCard: { backgroundColor: colors.background, padding: spacing.xxl, borderRadius: radius.xl, ...shadows.md },
   modalTitle: { ...typography.h3, color: colors.primary, textAlign: 'center', marginBottom: spacing.xl },
   authInput: { borderBottomWidth: 2, borderColor: colors.primary, padding: spacing.md, marginBottom: spacing.xl, width: '100%', color: colors.primary, ...typography.body },
   payBtn: { backgroundColor: colors.primary, padding: spacing.lg, borderRadius: radius.md, alignItems: 'center', ...shadows.sm }, 
-  payBtnText: { color: colors.background, fontWeight: 'bold', ...typography.bodySmall },
+  payBtnText: { color: colors.background, ...typography.bodySmall },
 });

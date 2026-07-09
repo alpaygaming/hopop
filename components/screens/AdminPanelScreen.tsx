@@ -138,6 +138,6 @@ const styles = StyleSheet.create({
   sectionTitle: { ...typography.bodySmall, fontWeight: '800', color: colors.text.muted, marginVertical: spacing.xl, letterSpacing: 1 },
   authInput: { backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, borderRadius: radius.md, marginBottom: spacing.lg, ...typography.body, color: colors.primary },
   authPrimaryBtn: { backgroundColor: colors.primary, padding: spacing.lg, borderRadius: radius.md, alignItems: 'center', marginTop: spacing.sm, ...shadows.sm },
-  authPrimaryBtnText: { color: colors.background, ...typography.body, fontWeight: 'bold' },
+  authPrimaryBtnText: { color: colors.background, ...typography.body },
   logoutBtn: { backgroundColor: '#ffeeee', padding: spacing.lg, borderRadius: radius.md, alignItems: 'center', marginTop: spacing.xxl, borderWidth: 1, borderColor: '#ffcccc' },
 });

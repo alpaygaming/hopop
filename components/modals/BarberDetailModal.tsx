@@ -100,7 +100,7 @@ export const BarberDetailModal: React.FC<BarberDetailModalProps> = ({
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md }}>
                     <Image source={{ uri: r.userAvatar || 'https://i.pravatar.cc/150' }} style={{ width: 30, height: 30, borderRadius: 15, marginRight: spacing.sm }} />
                     <View>
-                      <Text style={{ fontWeight: 'bold', ...typography.bodySmall }}>{r.user}</Text>
+                      <Text style={{ ...typography.bodySmall }}>{r.user}</Text>
                       <Text style={{ color: colors.text.muted, ...typography.caption }}>{r.date}</Text>
                     </View>
                     <Text style={{ marginLeft: 'auto', color: colors.accent.yellow }}>{'⭐'.repeat(r.star)}</Text>
@@ -120,13 +120,13 @@ export const BarberDetailModal: React.FC<BarberDetailModalProps> = ({
 const styles = StyleSheet.create({
   closeBtn: { position: 'absolute', top: 50, right: 20, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, padding: 8 },
   detailName: { ...typography.h1, color: colors.primary, marginBottom: spacing.xl }, 
-  sectionTitle: { ...typography.caption, fontWeight: 'bold', color: colors.text.muted, marginVertical: spacing.lg, letterSpacing: 1 },
+  sectionTitle: { ...typography.caption, color: colors.text.muted, marginVertical: spacing.lg, letterSpacing: 1 },
   categoryBadge: { paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: radius.sm },
   detailRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md, backgroundColor: colors.surface, padding: spacing.md, borderRadius: radius.md },
   detailRowText: { marginLeft: spacing.sm, ...typography.body, color: colors.text.primary, flex: 1 },
   slot: { padding: spacing.lg, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, marginRight: spacing.md, minWidth: 80, alignItems: 'center' },
   selected: { backgroundColor: colors.primary }, 
-  slotText: { fontWeight: 'bold', ...typography.bodySmall },
+  slotText: { ...typography.bodySmall },
   payBtn: { backgroundColor: colors.primary, padding: spacing.xl, borderRadius: radius.lg, marginTop: spacing.xxl, alignItems: 'center', ...shadows.md }, 
-  payBtnText: { color: colors.background, fontWeight: 'bold', ...typography.bodySmall },
+  payBtnText: { color: colors.background, ...typography.bodySmall },
 });

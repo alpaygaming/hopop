@@ -91,6 +91,6 @@ const styles = StyleSheet.create({
   shopInfo: { flex: 1, marginLeft: spacing.lg, justifyContent: 'center' },
   shopName: { ...typography.body, fontWeight: 'bold', color: colors.primary, marginBottom: spacing.xs },
   shopDistance: { color: colors.text.muted, ...typography.caption },
-  promoBadge: { backgroundColor: colors.accent.yellow, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radius.xs, alignSelf: 'flex-start' },
+  promoBadge: { backgroundColor: colors.accent.yellow, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radius.sm, alignSelf: 'flex-start' },
   promoText: { ...typography.label, color: colors.primary },
 });
