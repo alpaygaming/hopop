@@ -102,7 +102,7 @@ const styles = StyleSheet.create({
   tabPadding: { flex: 1, padding: spacing.xl, backgroundColor: colors.background },
   tabTitle: { ...typography.h2, color: colors.primary, marginBottom: spacing.xl, letterSpacing: -1 },
   promoPanel: { backgroundColor: colors.primary, padding: spacing.xl, borderRadius: radius.lg, marginBottom: spacing.xl, ...shadows.md },
-  panelTitle: { color: colors.background, fontWeight: 'bold', ...typography.body, marginBottom: spacing.lg },
+  panelTitle: { color: colors.background, ...typography.body, marginBottom: spacing.lg },
   sectionTitle: { ...typography.bodySmall, color: colors.text.muted, marginVertical: spacing.xl, letterSpacing: 1 },
   authInput: { backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, borderRadius: radius.md, marginBottom: spacing.lg, ...typography.body, color: colors.primary },
   authPrimaryBtn: { backgroundColor: colors.primary, padding: spacing.lg, borderRadius: radius.md, alignItems: 'center', marginTop: spacing.sm, ...shadows.sm },

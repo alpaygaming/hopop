@@ -135,6 +135,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     refreshGlobalReviews();
+  }, []);
+
   // Realtime Subscriptions
   useEffect(() => {
     // Shops Subscription

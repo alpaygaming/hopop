@@ -121,8 +121,8 @@ export const OwnerPanelScreen: React.FC = () => {
               </AnimatedPressable>
             </View>
           ))}
-          <AnimatedPressable style={[styles.expPickerPlaceholder, {width: 120, height: 120, marginRight: 10, marginBottom: 0}]} onPress={() => pickImage((uri) => {
-             setLocalImages(prev => [...prev, uri]);
+          <AnimatedPressable style={[styles.expPickerPlaceholder, {width: 120, height: 120, marginRight: 10, marginBottom: 0}]} onPress={() => pickImage((uri: string) => {
+             setLocalImages([...localImages, uri]);
           }, [16, 9])}>
             <Ionicons name="add" size={40} color="#ccc" />
             <Text style={{color:'#aaa', fontSize:12, marginTop:8, textAlign:'center'}}>Fotoğraf Ekle</Text>
@@ -151,7 +151,7 @@ export const OwnerPanelScreen: React.FC = () => {
           <AnimatedPressable onPress={refreshAppointments}>
             <Ionicons name="refresh" size={20} color="#000" />
           </AnimatedPressable>
-          <AnimatedPressable onPress={() => pickImage((uri: string) => { setLocalImages([...localImages, uri]); }, [4,3])}>
+          <AnimatedPressable onPress={() => pickImage((uri: string) => setLocalImages([...localImages, uri]), [4,3])}>
             <View style={{ width: 100, height: 100, backgroundColor: colors.surface, borderRadius: radius.md, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.border }}>
               <Ionicons name="camera" size={24} color={colors.text.muted} />
               <Text style={{ ...typography.caption, color: colors.text.muted }}>Resim Ekle</Text>
