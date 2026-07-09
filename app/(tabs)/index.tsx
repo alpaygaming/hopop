@@ -11,6 +11,7 @@ import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { LoginScreen } from '@/components/screens/LoginScreen';
 import { RegisterScreen } from '@/components/screens/RegisterScreen';
 import { ProfileScreen } from '@/components/screens/ProfileScreen';
+import { AppointmentsScreen } from '@/components/screens/AppointmentsScreen';
 import { UserRole } from '@/types';
 
 // --- OVERPASS API (OpenStreetMap) ---
@@ -930,39 +931,21 @@ export default function App() {
           )}
 
           {activeTab === 'appointments' && (
-            <View style={styles.tabPadding}>
-              <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-                <Text style={styles.tabTitle}>AKTİF RANDEVULARIM</Text>
-                <TouchableOpacity onPress={() => showNotification("Randevular güncel!")}>
-                  <Ionicons name="refresh" size={20} color="#000" />
-                </TouchableOpacity>
-              </View>
-              <FlatList data={appointments.filter(a => a.status === 'pending' || a.status === 'confirmed')} keyExtractor={item => item.id} renderItem={({ item }) => (
-                <View style={styles.appCard}>
-                  <View style={{ flex: 1 }}><Text style={styles.appShopName}>{item.barberName}</Text><Text style={styles.appDate}>{item.date} | {item.time}</Text></View>
-                  <View style={{ flexDirection: 'row' }}>
-                    {item.status === 'pending' && (
-                      <TouchableOpacity style={styles.actionBtn} onPress={() => handleConfirmAppointment(item.id)}>
-                        <Text style={styles.actionBtnText}>GİDECEĞİM</Text>
-                      </TouchableOpacity>
-                    )}
-                    {item.status === 'confirmed' && (
-                      <Text style={{color:'#2ed573', fontWeight:'bold', marginRight:10, alignSelf:'center'}}>ONAYLI ✅</Text>
-                    )}
-                    <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#ff4757' }]} onPress={async () => { 
-                      const { error } = await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', item.id);
-                      if (error) { Alert.alert("Hata", error.message); return; }
-                      
-                      const newApps = appointments.filter(a => a.id !== item.id);
-                      setAppointments(newApps); 
-                      setUser({ ...user, balance: user.balance + 350 }); 
-                      if(currentUsername) updateUserInDb(currentUsername, { balance: user.balance + 350 });
-                      showNotification("Ücret iade edildi."); 
-                    }}><Text style={styles.actionBtnText}>İPTAL</Text></TouchableOpacity>
-                  </View>
-                </View>
-              )} ListEmptyComponent={<Text style={{ color: '#aaa', textAlign: 'center', marginTop: 50 }}>Aktif randevunuz bulunmuyor.</Text>} />
-            </View>
+            <AppointmentsScreen
+              appointments={appointments}
+              onRefresh={() => showNotification("Randevular güncel!")}
+              onConfirm={handleConfirmAppointment}
+              onCancel={async (item) => {
+                const { error } = await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', item.id);
+                if (error) { Alert.alert("Hata", error.message); return; }
+                
+                const newApps = appointments.filter(a => a.id !== item.id);
+                setAppointments(newApps); 
+                setUser({ ...user, balance: user.balance + 350 }); 
+                if(currentUsername) updateUserInDb(currentUsername, { balance: user.balance + 350 });
+                showNotification("Ücret iade edildi."); 
+              }}
+            />
           )}
 
           {activeTab === 'profile' && (
