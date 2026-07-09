@@ -36,22 +36,7 @@ export const BarberDetailModal: React.FC = () => {
          if(!selectedBarber.modalWidth) setSelectedBarber({...selectedBarber, modalWidth: e.nativeEvent.layout.width});
       }}>
         <View style={{ height: 250, position: 'relative' }}>
-          <Image source={{ uri: selectedBarber.images[modalImageIndex] }} style={{ width: selectedBarber.modalWidth || Dimensions.get('window').width, height: 250, resizeMode: 'contain', backgroundColor: '#000' }} />
-          
-          {selectedBarber.images.length > 1 && (
-            <>
-              {modalImageIndex > 0 && (
-                <AnimatedPressable style={{ position: 'absolute', left: 10, top: 110, backgroundColor: 'rgba(0,0,0,0.5)', padding: 10, borderRadius: 20 }} onPress={() => setModalImageIndex(modalImageIndex - 1)}>
-                  <Ionicons name="chevron-back" size={24} color="#fff" />
-                </AnimatedPressable>
-              )}
-              {modalImageIndex < selectedBarber.images.length - 1 && (
-                <AnimatedPressable style={{ position: 'absolute', right: 10, top: 110, backgroundColor: 'rgba(0,0,0,0.5)', padding: 10, borderRadius: 20 }} onPress={() => setModalImageIndex(modalImageIndex + 1)}>
-                  <Ionicons name="chevron-forward" size={24} color="#fff" />
-                </AnimatedPressable>
-              )}
-            </>
-          )}
+          <Image source={{ uri: selectedBarber.image_url || 'https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&w=2074&q=80' }} style={{ width: selectedBarber.modalWidth || Dimensions.get('window').width, height: 250, resizeMode: 'cover', backgroundColor: '#000' }} />
           
           <AnimatedPressable style={styles.closeBtn} onPress={() => { setSelectedBarber(null); setModalImageIndex(0); }}>
             <Ionicons name="close" size={24} color="white" />

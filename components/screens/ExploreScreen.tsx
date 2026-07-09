@@ -78,7 +78,7 @@ export const ExploreScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   categoryScreen: { flex: 1, padding: 20, backgroundColor: '#f9f9f9', justifyContent: 'center' },
-  mainTitle: { fontSize: 40, fontWeight: '900', color: '#000', marginBottom: 20, letterSpacing: -2 },
+  mainTitle: { fontSize: 28, fontWeight: '900', color: '#000', marginBottom: 20, letterSpacing: -1 },
   allMapCard: { backgroundColor: '#000', padding: 25, borderRadius: 16, alignItems: 'center', marginBottom: 20, shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.2, shadowRadius: 5, elevation: 5 },
   allMapTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold', letterSpacing: 1 },
   categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
