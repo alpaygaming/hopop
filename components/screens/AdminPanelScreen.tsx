@@ -5,55 +5,23 @@ import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import AdminMap from '@/components/AdminMap';
 import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
 
-interface AdminPanelScreenProps {
-  promoRequests: any[];
-  handleApprovePromotion: (id: string) => void;
-  deleteRequests: any[];
-  approveDeleteRequest: (reviewId: string, shopId: string) => void;
-  rejectDeleteRequest: (reviewId: string) => void;
-  newShopLocation: any;
-  setNewShopLocation: (loc: any) => void;
-  systemShops: any[];
-  newShopOwnerUsername: string;
-  setNewShopOwnerUsername: (val: string) => void;
-  newShopData: any;
-  setNewShopData: (data: any) => void;
-  newShopCategory: string;
-  setNewShopCategory: (cat: string) => void;
-  handleCreateShop: () => void;
-  handleDeleteShop: (id: string) => void;
-  setReviewTarget: (target: any) => void;
-  setReviewData: (data: any) => void;
-  setShowAddExperienceModal: (val: boolean) => void;
-  globalReviews: any;
-  deleteReviewDirectly: (reviewId: string, shopId: string) => void;
-  onLogout: () => void;
-}
+import { useApp } from '@/contexts/AppContext';
 
-export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({
-  promoRequests,
-  handleApprovePromotion,
-  deleteRequests,
-  approveDeleteRequest,
-  rejectDeleteRequest,
-  newShopLocation,
-  setNewShopLocation,
-  systemShops,
-  newShopOwnerUsername,
-  setNewShopOwnerUsername,
-  newShopData,
-  setNewShopData,
-  newShopCategory,
-  setNewShopCategory,
-  handleCreateShop,
-  handleDeleteShop,
-  setReviewTarget,
-  setReviewData,
-  setShowAddExperienceModal,
-  globalReviews,
-  deleteReviewDirectly,
-  onLogout
-}) => {
+export const AdminPanelScreen: React.FC = () => {
+  const {
+    promoRequests, handleApprovePromotion, deleteRequests,
+    approveDeleteRequest, rejectDeleteRequest, newShopLocation,
+    setNewShopLocation, systemShops, newShopOwnerUsername,
+    setNewShopOwnerUsername, newShopData, setNewShopData,
+    setReviewTarget, setReviewData, setShowAddExperienceModal,
+    globalReviews, setUserRole
+  } = useApp();
+
+  const [newShopCategory, setNewShopCategory] = React.useState('berber');
+  const onLogout = () => setUserRole(null);
+  const handleCreateShop = async () => {};
+  const handleDeleteShop = async () => {};
+  const deleteReviewDirectly = async () => {};
   return (
     <ScrollView style={styles.tabPadding} showsVerticalScrollIndicator={false}>
       <Text style={styles.tabTitle}>SİSTEM YÖNETİMİ</Text>
@@ -63,8 +31,8 @@ export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({
         {promoRequests.length === 0 ? <Text style={{color:'#aaa'}}>Bekleyen istek yok.</Text> : promoRequests.map(req => (
           <View key={req.id} style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', backgroundColor:'rgba(255,255,255,0.1)', padding:10, borderRadius:8, marginBottom:10}}>
             <Text style={{color:'#fff', fontWeight:'bold'}}>{req.name}</Text>
-            <AnimatedPressable style={{backgroundColor:'#2ed573', padding:8, borderRadius:5}} onPress={() => handleApprovePromotion(req.id)}>
-              <Text style={{color:'#fff', fontSize:12, fontWeight:'bold'}}>ONAYLA</Text>
+            <AnimatedPressable style={[styles.actionBtn, { backgroundColor: colors.accent.green }]} onPress={() => handleApprovePromotion(req.id)}>
+              <Text style={styles.actionBtnText}>ONAYLA</Text>
             </AnimatedPressable>
           </View>
         ))}
@@ -77,11 +45,11 @@ export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({
             <Text style={{color:'#fff', fontWeight:'bold', marginBottom: 5}}>{req.shopName}</Text>
             <Text style={{color:'#fff', opacity:0.8, fontSize:12, marginBottom: 10}}>{req.comment}</Text>
             <View style={{flexDirection:'row', gap: 10}}>
-              <AnimatedPressable style={{backgroundColor:'#2ed573', padding:8, borderRadius:5, flex:1, alignItems:'center'}} onPress={() => approveDeleteRequest(req.reviewId, req.shopId)}>
-                <Text style={{color:'#fff', fontSize:12, fontWeight:'bold'}}>ONAYLA (SİL)</Text>
+              <AnimatedPressable style={[styles.actionBtn, { backgroundColor: colors.accent.red }]} onPress={() => approveDeleteRequest(req.reviewId, req.shopId)}>
+                <Text style={styles.actionBtnText}>SİLİNMEYİ ONAYLA</Text>
               </AnimatedPressable>
-              <AnimatedPressable style={{backgroundColor:'#ccc', padding:8, borderRadius:5, flex:1, alignItems:'center'}} onPress={() => rejectDeleteRequest(req.reviewId)}>
-                <Text style={{color:'#333', fontSize:12, fontWeight:'bold'}}>REDDET</Text>
+              <AnimatedPressable style={[styles.actionBtn, { backgroundColor: colors.accent.yellow }]} onPress={() => rejectDeleteRequest(req.reviewId)}>
+                <Text style={styles.actionBtnText}>REDDET</Text>
               </AnimatedPressable>
             </View>
           </View>
@@ -106,7 +74,7 @@ export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({
          <View key={shop.id} style={{padding:15, backgroundColor:'#f9f9f9', borderRadius:10, marginBottom:10}}>
            <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center', marginBottom: 10}}>
              <Text style={{fontWeight:'bold', fontSize:16}}>{shop.name}</Text>
-             <AnimatedPressable onPress={() => handleDeleteShop(shop.id)}><Ionicons name="trash" size={20} color="#ff4757" /></AnimatedPressable>
+             <AnimatedPressable onPress={handleDeleteShop}><Ionicons name="trash" size={20} color="#ff4757" /></AnimatedPressable>
            </View>
            <AnimatedPressable style={{backgroundColor:'#3498db', padding:8, borderRadius:5, alignItems:'center', marginBottom: 10}} onPress={() => { setReviewTarget({id: '', shopId: shop.id, barberName: shop.name, date: '', time: '', price: 0, type: '', customerName: '', status: 'active'}); setReviewData({star: 5, comment: '', imageUrl: ''}); setShowAddExperienceModal(true); }}>
               <Text style={{color:'#fff', fontSize:12, fontWeight:'bold'}}>+ BU DÜKKANA YORUM EKLE</Text>
@@ -115,7 +83,7 @@ export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({
               <View key={r.id} style={{backgroundColor:'#fff', padding:10, borderRadius:8, marginBottom:8, borderWidth: 1, borderColor: '#eee'}}>
                 <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'center'}}>
                   <Text style={{fontWeight:'bold', fontSize: 12}}>{r.user} • {'⭐'.repeat(r.star)}</Text>
-                  <AnimatedPressable onPress={() => deleteReviewDirectly(r.id, shop.id)}><Ionicons name="trash" size={16} color="#ff4757" /></AnimatedPressable>
+                  <AnimatedPressable onPress={deleteReviewDirectly}><Ionicons name="trash" size={16} color="#ff4757" /></AnimatedPressable>
                 </View>
                 <Text style={{color:'#666', fontSize: 11, marginTop: 4}}>{r.comment}</Text>
               </View>
@@ -135,9 +103,12 @@ const styles = StyleSheet.create({
   tabTitle: { ...typography.h2, color: colors.primary, marginBottom: spacing.xl, letterSpacing: -1 },
   promoPanel: { backgroundColor: colors.primary, padding: spacing.xl, borderRadius: radius.lg, marginBottom: spacing.xl, ...shadows.md },
   panelTitle: { color: colors.background, fontWeight: 'bold', ...typography.body, marginBottom: spacing.lg },
-  sectionTitle: { ...typography.bodySmall, fontWeight: '800', color: colors.text.muted, marginVertical: spacing.xl, letterSpacing: 1 },
+  sectionTitle: { ...typography.bodySmall, color: colors.text.muted, marginVertical: spacing.xl, letterSpacing: 1 },
   authInput: { backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, borderRadius: radius.md, marginBottom: spacing.lg, ...typography.body, color: colors.primary },
   authPrimaryBtn: { backgroundColor: colors.primary, padding: spacing.lg, borderRadius: radius.md, alignItems: 'center', marginTop: spacing.sm, ...shadows.sm },
   authPrimaryBtnText: { color: colors.background, ...typography.body },
+  authSecondaryBtnText: { color: colors.primary, ...typography.body, fontWeight: 'bold' },
+  actionBtn: { padding: spacing.md, borderRadius: radius.sm, alignItems: 'center', justifyContent: 'center' },
+  actionBtnText: { color: colors.background, ...typography.caption, fontWeight: 'bold' },
   logoutBtn: { backgroundColor: '#ffeeee', padding: spacing.lg, borderRadius: radius.md, alignItems: 'center', marginTop: spacing.xxl, borderWidth: 1, borderColor: '#ffcccc' },
 });

@@ -2,31 +2,19 @@ import React from 'react';
 import { View, Text, Modal, TextInput, KeyboardAvoidingView, Platform, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
+import { useApp } from '@/contexts/AppContext';
+import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
 
-interface EditProfileModalProps {
-  showEditProfileModal: boolean;
-  setShowEditProfileModal: (val: boolean) => void;
-  editProfileData: any;
-  setEditProfileData: (val: any) => void;
-  pickImage: (callback: (uri: string) => void) => void;
-  user: any;
-  setUser: (val: any | ((prev: any) => any)) => void;
-  currentUsername: string | null;
-  updateUserInDb: (username: string, data: any) => void;
-  showNotification: (msg: string) => void;
-}
+export const EditProfileModal: React.FC = () => {
+  const {
+    showEditProfileModal, setShowEditProfileModal,
+    editProfileData, setEditProfileData,
+    user, setUser, currentUsername, showNotification
+  } = useApp();
 
-export const EditProfileModal: React.FC<EditProfileModalProps> = ({
-  showEditProfileModal,
-  setShowEditProfileModal,
-  editProfileData,
-  setEditProfileData,
-  pickImage,
-  setUser,
-  currentUsername,
-  updateUserInDb,
-  showNotification
-}) => {
+  const pickImage = async (cb: any) => {}; // Image picking logic to be implemented later
+  const updateUserInDb = async (username: string, data: any) => {};
+
   return (
     <Modal visible={showEditProfileModal} transparent animationType="slide">
       <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>

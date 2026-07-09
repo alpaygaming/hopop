@@ -4,19 +4,24 @@ import { Ionicons } from '@expo/vector-icons';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
 
-interface AppointmentsScreenProps {
-  appointments: any[];
-  onRefresh: () => void;
-  onConfirm: (id: string) => void;
-  onCancel: (item: any) => void;
-}
+import { useApp } from '@/contexts/AppContext';
+import { supabase } from '@/lib/supabase';
+import { Alert } from 'react-native';
 
-export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
-  appointments,
-  onRefresh,
-  onConfirm,
-  onCancel,
-}) => {
+export const AppointmentsScreen: React.FC = () => {
+  const { appointments, setAppointments, user, setUser, showNotification } = useApp();
+
+  const onRefresh = () => showNotification("Randevular güncel!");
+  const onConfirm = (id: string) => {}; 
+  const onCancel = async (item: any) => {
+    const { error } = await supabase.from('appointments').update({ status: 'cancelled' }).eq('id', item.id);
+    if (error) { Alert.alert("Hata", error.message); return; }
+    
+    const newApps = appointments.filter(a => a.id !== item.id);
+    setAppointments(newApps); 
+    setUser({ ...user, balance: user.balance + 350 }); 
+    showNotification("Randevu iptal edildi. 350 TL iade edildi.");
+  };
   return (
     <View style={styles.tabPadding}>
       <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xl}}>

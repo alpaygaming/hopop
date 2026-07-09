@@ -3,21 +3,13 @@ import { View, Text, FlatList, ScrollView, Image, TouchableOpacity, StyleSheet }
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
 
-interface ShopsScreenProps {
-  dynamicBarbers: any[];
-  sortOption: string;
-  setSortOption: (opt: any) => void;
-  setSelectedCategory: (cat: string) => void;
-  setSelectedBarber: (barber: any) => void;
-}
+import { useApp } from '@/contexts/AppContext';
 
-export const ShopsScreen: React.FC<ShopsScreenProps> = ({
-  dynamicBarbers,
-  sortOption,
-  setSortOption,
-  setSelectedCategory,
-  setSelectedBarber,
-}) => {
+export const ShopsScreen: React.FC = () => {
+  const {
+    dynamicBarbers, sortOption, setSortOption,
+    setSelectedCategory, setSelectedBarber
+  } = useApp();
   return (
     <View style={styles.tabPadding}>
       <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>

@@ -3,28 +3,21 @@ import { View, Text, TouchableOpacity, Image, ScrollView, StyleSheet } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
+import { useApp } from '@/contexts/AppContext';
 
-interface ProfileScreenProps {
-  user: any;
-  appointments: any[];
-  userExperiences: any[];
-  onRefreshProfile: () => void;
-  onEditProfile: () => void;
-  onTopUp: () => void;
-  onAddReview: (app: any) => void;
-  onLogout: () => void;
-}
+export const ProfileScreen: React.FC = () => {
+  const {
+    user, appointments, userExperiences, refreshAppointments,
+    setShowEditProfileModal, setShowTopUpModal,
+    setReviewTarget, setShowAddExperienceModal, setUserRole
+  } = useApp();
 
-export const ProfileScreen: React.FC<ProfileScreenProps> = ({
-  user,
-  appointments,
-  userExperiences,
-  onRefreshProfile,
-  onEditProfile,
-  onTopUp,
-  onAddReview,
-  onLogout
-}) => {
+  const onRefreshProfile = refreshAppointments;
+  const onEditProfile = () => setShowEditProfileModal(true);
+  const onTopUp = () => setShowTopUpModal(true);
+  const onAddReview = (app: any) => { setReviewTarget(app); setShowAddExperienceModal(true); };
+  const onLogout = () => setUserRole(null);
+
   return (
     <ScrollView style={styles.tabPadding} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
       <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xl}}>

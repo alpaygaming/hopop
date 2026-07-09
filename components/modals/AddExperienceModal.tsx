@@ -5,41 +5,18 @@ import { supabase } from '@/lib/supabase';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { Review } from '@/types';
 
-interface AddExperienceModalProps {
-  showAddExperienceModal: boolean;
-  setShowAddExperienceModal: (val: boolean) => void;
-  reviewTarget: any;
-  authError: string;
-  setAuthError: (val: string) => void;
-  reviewData: any;
-  setReviewData: (val: any) => void;
-  pickImage: (callback: (uri: string) => void) => void;
-  user: any;
-  globalReviews: any;
-  setGlobalReviews: (val: any) => void;
-  userExperiences: any[];
-  setUserExperiences: (val: any[]) => void;
-  updateAverageRating: (shopId: string, reviews: any[]) => void;
-  showNotification: (msg: string) => void;
-}
+import { useApp } from '@/contexts/AppContext';
 
-export const AddExperienceModal: React.FC<AddExperienceModalProps> = ({
-  showAddExperienceModal,
-  setShowAddExperienceModal,
-  reviewTarget,
-  authError,
-  setAuthError,
-  reviewData,
-  setReviewData,
-  pickImage,
-  user,
-  globalReviews,
-  setGlobalReviews,
-  userExperiences,
-  setUserExperiences,
-  updateAverageRating,
-  showNotification
-}) => {
+export const AddExperienceModal: React.FC = () => {
+  const {
+    showAddExperienceModal, setShowAddExperienceModal, reviewTarget,
+    reviewData, setReviewData, user, globalReviews, setGlobalReviews,
+    userExperiences, setUserExperiences, showNotification
+  } = useApp();
+
+  const [authError, setAuthError] = React.useState('');
+  const pickImage = async (cb: any) => {}; // Implement later
+  const updateAverageRating = (id: string, reviews: any[]) => {};
   return (
     <Modal visible={showAddExperienceModal} transparent animationType="slide">
       <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>

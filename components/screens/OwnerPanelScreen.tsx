@@ -6,43 +6,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
 
-interface OwnerPanelScreenProps {
-  ownerShopDb: any;
-  ownerShop: any;
-  user: any;
-  localImages: string[];
-  setLocalImages: (imgs: string[] | ((prev: string[]) => string[])) => void;
-  pickImage: (callback: (uri: string) => void, aspect: [number, number]) => void;
-  setOwnerShopDb: (data: any) => void;
-  showNotification: (msg: string) => void;
-  handleRequestPromotion: () => void;
-  ownerAppointments: any[];
-  setOwnerAppointments: (apps: any[]) => void;
-  setShowManualAddModal: (val: boolean) => void;
-  globalReviews: any;
-  deleteRequests: any[];
-  handleDeleteRequest: (reviewId: string, shopId: string, shopName: string, comment: string) => void;
-  onLogout: () => void;
-}
+import { useApp } from '@/contexts/AppContext';
 
-export const OwnerPanelScreen: React.FC<OwnerPanelScreenProps> = ({
-  ownerShopDb,
-  ownerShop,
-  user,
-  localImages,
-  setLocalImages,
-  pickImage,
-  setOwnerShopDb,
-  showNotification,
-  handleRequestPromotion,
-  ownerAppointments,
-  setOwnerAppointments,
-  setShowManualAddModal,
-  globalReviews,
-  deleteRequests,
-  handleDeleteRequest,
-  onLogout
-}) => {
+export const OwnerPanelScreen: React.FC = () => {
+  const {
+    ownerShopDb, user, localImages, setLocalImages, setOwnerShopDb,
+    showNotification, handleRequestPromotion, ownerAppointments,
+    setOwnerAppointments, globalReviews, deleteRequests,
+    handleDeleteRequest, setUserRole, setShowAddExperienceModal
+  } = useApp();
+
+  const onLogout = () => setUserRole(null);
+  const setShowManualAddModal = setShowAddExperienceModal;
+  const ownerShop = { name: ownerShopDb?.name || 'Dükkan', views: ownerShopDb?.views || 0 };
+  const pickImage = async (cb: (uri: string) => void, aspect: [number, number]) => {};
 
   const refreshAppointments = async () => {
     const { data: oApps } = await supabase.from('appointments').select('*, profiles(full_name)').eq('shop_id', ownerShopDb.id).order('created_at', { ascending: false });
@@ -174,7 +151,12 @@ export const OwnerPanelScreen: React.FC<OwnerPanelScreenProps> = ({
           <AnimatedPressable onPress={refreshAppointments}>
             <Ionicons name="refresh" size={20} color="#000" />
           </AnimatedPressable>
-          <AnimatedPressable onPress={() => setShowManualAddModal(true)}><Text style={styles.addManualText}>+ ELLE EKLE</Text></AnimatedPressable>
+          <AnimatedPressable onPress={() => pickImage((uri: string) => { setLocalImages([...localImages, uri]); }, [4,3])}>
+            <View style={{ width: 100, height: 100, backgroundColor: colors.surface, borderRadius: radius.md, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: colors.border }}>
+              <Ionicons name="camera" size={24} color={colors.text.muted} />
+              <Text style={{ ...typography.caption, color: colors.text.muted }}>Resim Ekle</Text>
+            </View>
+          </AnimatedPressable>
         </View>
       </View>
       

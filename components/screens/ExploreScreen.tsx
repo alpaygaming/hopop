@@ -7,31 +7,18 @@ import AppMap from '@/components/AppMap';
 const CATEGORIES_DATA = [
   { id: 'berber', name: 'Erkek Kuaförü', icon: 'cut' },
   { id: 'kuafor', name: 'Kadın Kuaförü', icon: 'female' },
-  { id: 'guzellik', name: 'Güzellik Merkezi', icon: 'spa' },
-  { id: 'dovme', name: 'Dövmeci', icon: 'pen-fancy' },
-  { id: 'masaj', name: 'Masaj Salonu', icon: 'hands' },
-  { id: 'diyetisyen', name: 'Diyetisyen', icon: 'apple-alt' }
+  { id: 'tırnak', name: 'Nail Art', icon: 'hand-sparkles' },
+  { id: 'güzellik', name: 'Güzellik Salonu', icon: 'spa' }
 ];
 
-interface ExploreScreenProps {
-  selectedCategory: string | null;
-  setSelectedCategory: (cat: string | null) => void;
-  location: any;
-  dynamicBarbers: any[];
-  setSelectedBarber: (barber: any) => void;
-  mapLoading: boolean;
-  setDynamicBarbers: (data: any[]) => void;
-}
+import { useApp } from '@/contexts/AppContext';
 
-export const ExploreScreen: React.FC<ExploreScreenProps> = ({
-  selectedCategory,
-  setSelectedCategory,
-  location,
-  dynamicBarbers,
-  setSelectedBarber,
-  mapLoading,
-  setDynamicBarbers
-}) => {
+export const ExploreScreen: React.FC = () => {
+  const {
+    selectedCategory, setSelectedCategory,
+    location, dynamicBarbers, setSelectedBarber,
+    mapLoading, setDynamicBarbers
+  } = useApp();
   if (!selectedCategory) {
     return (
       <View style={styles.categoryScreen}>

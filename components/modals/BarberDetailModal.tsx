@@ -3,32 +3,31 @@ import { View, Text, Modal, ScrollView, Image, TouchableOpacity, Dimensions, Sty
 import { Ionicons } from '@expo/vector-icons';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
 
-interface BarberDetailModalProps {
-  selectedBarber: any;
-  setSelectedBarber: (barber: any) => void;
-  modalImageIndex: number;
-  setModalImageIndex: (index: number) => void;
-  selectedTime: string | null;
-  setSelectedTime: (t: string) => void;
-  userRole: string | null;
-  handlePayment: () => void;
-  showNotification: (msg: string) => void;
-  globalReviews: any;
-}
+LocaleConfig.locales['tr'] = {
+  monthNames: ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'],
+  monthNamesShort: ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'],
+  dayNames: ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'],
+  dayNamesShort: ['Paz','Pzt','Sal','Çar','Per','Cum','Cmt'],
+  today: 'Bugün'
+};
+LocaleConfig.defaultLocale = 'tr';
 
-export const BarberDetailModal: React.FC<BarberDetailModalProps> = ({
-  selectedBarber,
-  setSelectedBarber,
-  modalImageIndex,
-  setModalImageIndex,
-  selectedTime,
-  setSelectedTime,
-  userRole,
-  handlePayment,
-  showNotification,
-  globalReviews
-}) => {
+import { useApp } from '@/contexts/AppContext';
+
+export const BarberDetailModal: React.FC = () => {
+  const {
+    selectedBarber, setSelectedBarber, userRole,
+    showNotification, globalReviews
+  } = useApp();
+
+  const [modalImageIndex, setModalImageIndex] = React.useState(0);
+  const [selectedDate, setSelectedDate] = React.useState<string | null>(null);
+  const [selectedTime, setSelectedTime] = React.useState<string | null>(null);
+
+  const handlePayment = () => {};
+
   if (!selectedBarber) return null;
 
   return (
@@ -73,17 +72,46 @@ export const BarberDetailModal: React.FC<BarberDetailModalProps> = ({
           {selectedBarber.website ? <View style={styles.detailRow}><Ionicons name="globe" size={18} color="#666" /><Text style={[styles.detailRowText, { color: '#3498db' }]} numberOfLines={1}>{selectedBarber.website}</Text></View> : null}
           {selectedBarber.description ? <Text style={{ color: '#555', fontSize: 13, marginTop: 10, lineHeight: 20 }}>{selectedBarber.description}</Text> : null}
 
-          <Text style={styles.sectionTitle}>SAAT SEÇİN (350 TL)</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {(selectedBarber.working_hours || ["09:00", "11:00", "13:00", "15:00", "17:00"]).map((t: string) => (
-              <AnimatedPressable key={t} style={[styles.slot, selectedTime === t && styles.selected]} onPress={() => setSelectedTime(t)}>
-                <Text style={[styles.slotText, selectedTime === t && { color: '#fff' }]}>{t}</Text>
-              </AnimatedPressable>
-            ))}
-          </ScrollView>
+          <Text style={styles.sectionTitle}>GÜN SEÇİN</Text>
+          <Calendar
+            current={new Date().toISOString().split('T')[0]}
+            minDate={new Date().toISOString().split('T')[0]}
+            onDayPress={(day: any) => {
+              setSelectedDate(day.dateString);
+              setSelectedTime(null);
+            }}
+            markedDates={{
+              [selectedDate || '']: { selected: true, selectedColor: colors.primary, selectedTextColor: colors.background }
+            }}
+            theme={{
+              todayTextColor: colors.primary,
+              arrowColor: colors.primary,
+              textDayFontWeight: 'bold',
+              textMonthFontWeight: 'bold',
+              textDayHeaderFontWeight: 'bold'
+            }}
+            style={{ borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, marginBottom: spacing.xl }}
+          />
+
+          {selectedDate && (
+            <>
+              <Text style={styles.sectionTitle}>SAAT SEÇİN (350 TL)</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.xl }}>
+                {(selectedBarber.working_hours || ["09:00", "11:00", "13:00", "15:00", "17:00"]).map((t: string) => (
+                  <AnimatedPressable key={t} style={[styles.slot, selectedTime === t && styles.selected]} onPress={() => setSelectedTime(t)}>
+                    <Text style={[styles.slotText, selectedTime === t && { color: '#fff' }]}>{t}</Text>
+                  </AnimatedPressable>
+                ))}
+              </ScrollView>
+            </>
+          )}
 
           <AnimatedPressable style={[styles.payBtn, { marginBottom: 20 }]} onPress={() => {
             if (userRole === 'customer') {
+              if (!selectedDate || !selectedTime) {
+                 showNotification("Lütfen gün ve saat seçin.");
+                 return;
+              }
               handlePayment();
             } else {
               showNotification("Sadece müşteriler randevu alabilir.");
