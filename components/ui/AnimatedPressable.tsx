@@ -17,8 +17,8 @@ export const AnimatedPressable: React.FC<AnimatedPressableProps> = ({ onPress, c
   const handlePressIn = (e: any) => {
     if (disabled) return;
     Animated.parallel([
-      Animated.spring(scale, { toValue: 0.90, useNativeDriver: useNative, speed: 20 }),
-      Animated.timing(opacity, { toValue: 0.6, duration: 100, useNativeDriver: useNative }),
+      Animated.spring(scale, { toValue: 0.96, useNativeDriver: useNative, speed: 40, bounciness: 12 }),
+      Animated.timing(opacity, { toValue: 0.8, duration: 150, useNativeDriver: useNative }),
     ]).start();
     if (props.onPressIn) props.onPressIn(e);
   };
@@ -26,8 +26,8 @@ export const AnimatedPressable: React.FC<AnimatedPressableProps> = ({ onPress, c
   const handlePressOut = (e: any) => {
     if (disabled) return;
     Animated.parallel([
-      Animated.spring(scale, { toValue: 1, useNativeDriver: useNative, friction: 4, tension: 40 }),
-      Animated.timing(opacity, { toValue: 1, duration: 150, useNativeDriver: useNative }),
+      Animated.spring(scale, { toValue: 1, useNativeDriver: useNative, speed: 40, bounciness: 10 }),
+      Animated.timing(opacity, { toValue: 1, duration: 200, useNativeDriver: useNative }),
     ]).start();
     if (props.onPressOut) props.onPressOut(e);
   };

@@ -49,8 +49,8 @@ export default function TabLayout() {
           }
         }}
       >
-        <Ionicons name={icon as any} size={20} color={isFocused ? "#000" : "#ccc"} />
-        <Text style={styles.navText}>{label}</Text>
+        <Ionicons name={icon as any} size={22} color={isFocused ? "#0f172a" : "#94a3b8"} />
+        <Text style={[styles.navText, { color: isFocused ? "#0f172a" : "#94a3b8" }]}>{label}</Text>
       </AnimatedPressable>
     );
   };
@@ -71,7 +71,7 @@ export default function TabLayout() {
 }
 
 const styles = StyleSheet.create({
-  navBar: { height: 90, flexDirection: 'row', borderTopWidth: 1, borderColor: '#eee', paddingBottom: 20, backgroundColor: '#fff' },
+  navBar: { height: 90, flexDirection: 'row', borderTopWidth: 1, borderColor: '#e2e8f0', paddingBottom: 24, paddingTop: 10, backgroundColor: '#ffffff', shadowColor: '#0f172a', shadowOffset: {width: 0, height: -4}, shadowOpacity: 0.05, shadowRadius: 10, elevation: 10 },
   navItem: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  navText: { fontSize: 9, fontWeight: 'bold', marginTop: 5 },
+  navText: { fontSize: 10, fontWeight: '700', marginTop: 6, letterSpacing: 0.5 },
 });

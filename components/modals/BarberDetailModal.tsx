@@ -131,13 +131,13 @@ export const BarberDetailModal: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  closeBtn: { position: 'absolute', top: 50, right: 20, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, padding: 8 },
+  closeBtn: { position: 'absolute', top: 50, right: 20, backgroundColor: 'rgba(15,23,42,0.6)', borderRadius: 24, padding: 10, ...shadows.md },
   detailName: { ...typography.h1, color: colors.primary, marginBottom: spacing.xl }, 
   sectionTitle: { ...typography.caption, color: colors.text.muted, marginVertical: spacing.lg, letterSpacing: 1 },
-  categoryBadge: { paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: radius.sm },
-  detailRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md, backgroundColor: colors.surface, padding: spacing.md, borderRadius: radius.md },
-  detailRowText: { marginLeft: spacing.sm, ...typography.body, color: colors.text.primary, flex: 1 },
-  slot: { padding: spacing.lg, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, marginRight: spacing.md, minWidth: 80, alignItems: 'center' },
+  categoryBadge: { paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radius.sm },
+  detailRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md, backgroundColor: colors.surface, padding: spacing.md, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, ...shadows.sm },
+  detailRowText: { marginLeft: spacing.md, ...typography.body, color: colors.text.primary, flex: 1 },
+  slot: { padding: spacing.lg, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, marginRight: spacing.md, minWidth: 80, alignItems: 'center', backgroundColor: colors.background, ...shadows.sm },
   selected: { backgroundColor: colors.primary }, 
   slotText: { ...typography.bodySmall },
   payBtn: { backgroundColor: colors.primary, padding: spacing.xl, borderRadius: radius.lg, marginTop: spacing.xxl, alignItems: 'center', ...shadows.md }, 

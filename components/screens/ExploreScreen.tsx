@@ -77,13 +77,13 @@ export const ExploreScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  categoryScreen: { flex: 1, padding: 20, backgroundColor: '#f9f9f9', justifyContent: 'center' },
-  mainTitle: { fontSize: 28, fontWeight: '900', color: '#000', marginBottom: 20, letterSpacing: -1 },
-  allMapCard: { backgroundColor: '#000', padding: 25, borderRadius: 16, alignItems: 'center', marginBottom: 20, shadowColor: '#000', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.2, shadowRadius: 5, elevation: 5 },
-  allMapTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold', letterSpacing: 1 },
+  categoryScreen: { flex: 1, padding: 20, backgroundColor: '#f8fafc', justifyContent: 'center' },
+  mainTitle: { fontSize: 32, fontWeight: '800', color: '#0f172a', marginBottom: 24, letterSpacing: -1 },
+  allMapCard: { backgroundColor: '#0f172a', padding: 24, borderRadius: 16, alignItems: 'center', marginBottom: 24, shadowColor: '#0f172a', shadowOffset: {width: 0, height: 8}, shadowOpacity: 0.15, shadowRadius: 12, elevation: 8 },
+  allMapTitle: { color: '#ffffff', fontSize: 16, fontWeight: '700', letterSpacing: 1 },
   categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  categoryCard: { width: '48%', backgroundColor: '#fff', padding: 20, borderRadius: 16, alignItems: 'center', marginBottom: 15, borderWidth: 1, borderColor: '#eee', shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.05, shadowRadius: 3, elevation: 2 },
-  catName: { marginTop: 10, fontWeight: 'bold', fontSize: 13, color: '#333' },
+  categoryCard: { width: '48%', backgroundColor: '#ffffff', padding: 24, borderRadius: 16, alignItems: 'center', marginBottom: 16, borderWidth: 1, borderColor: '#e2e8f0', shadowColor: '#0f172a', shadowOffset: {width: 0, height: 4}, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  catName: { marginTop: 12, fontWeight: '600', fontSize: 14, color: '#334155' },
   map: { width: '100%', height: '100%' },
   markerBox: { backgroundColor: '#fff', padding: 6, borderRadius: 8, borderWidth: 1, borderColor: '#ccc', alignItems: 'center', shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.2, shadowRadius: 2, elevation: 3 },
   mapLoadingOverlay: { position: 'absolute', top: '50%', left: '50%', transform: [{translateX: -75}, {translateY: -50}], backgroundColor: 'rgba(255,255,255,0.9)', padding: 20, borderRadius: 16, alignItems: 'center' },
