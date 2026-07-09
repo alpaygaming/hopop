@@ -7,6 +7,7 @@ import AdminMap from '../../components/AdminMap';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
+import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 
 // --- OVERPASS API (OpenStreetMap) ---
 const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -830,7 +831,9 @@ export default function App() {
           {authError ? <Text style={{ color: 'red', marginBottom: 10, textAlign: 'center' }}>{authError}</Text> : null}
           <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Kullanıcı Adı" value={loginUsername} onChangeText={setLoginUsername} autoCapitalize="none" />
           <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Şifre" value={loginPassword} onChangeText={setLoginPassword} secureTextEntry />
-            <TouchableOpacity style={styles.authPrimaryBtn} onPress={() => handleLogin()}><Text style={styles.authPrimaryBtnText}>GİRİŞ YAP</Text></TouchableOpacity>
+            <AnimatedPressable style={styles.authPrimaryBtn} onPress={() => handleLogin()}>
+            <Text style={styles.authPrimaryBtnText}>GİRİŞ YAP</Text>
+          </AnimatedPressable>
             
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 15, justifyContent: 'center' }}>
               <TouchableOpacity onPress={() => setRememberMe(!rememberMe)} style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -870,7 +873,9 @@ export default function App() {
           <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Şifre (en az 6 karakter)" value={regPassword} onChangeText={setRegPassword} secureTextEntry />
           {regRole === 'owner' && <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="İşletme / Dükkan Adı" value={regShopName} onChangeText={setRegShopName} />}
 
-          <TouchableOpacity style={styles.authPrimaryBtn} onPress={handleRegister}><Text style={styles.authPrimaryBtnText}>KAYIT OL</Text></TouchableOpacity>
+          <AnimatedPressable style={styles.authPrimaryBtn} onPress={handleRegister}>
+            <Text style={styles.authPrimaryBtnText}>KAYIT OL</Text>
+          </AnimatedPressable>
           <TouchableOpacity style={{marginTop: 20}} onPress={() => setAuthState('login')}>
             <Text style={styles.registerLink}>Zaten hesabınız var mı? <Text style={styles.registerLinkHighlight}>Giriş Yap</Text></Text>
           </TouchableOpacity>
@@ -1474,7 +1479,7 @@ export default function App() {
               
               <View style={{ flexDirection: 'row', gap: 10 }}>
                 <TouchableOpacity style={[styles.payBtn, { backgroundColor: '#ccc', flex: 1 }]} onPress={() => setShowAddExperienceModal(false)}><Text style={styles.payBtnText}>İPTAL</Text></TouchableOpacity>
-                <TouchableOpacity style={[styles.payBtn, { flex: 1 }]} onPress={async () => { 
+                <AnimatedPressable style={[styles.payBtn, { flex: 1 }]} onPress={async () => { 
                   if(reviewTarget) {
                     const isValidUuid = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
                     const apptId = isValidUuid(reviewTarget.id) ? reviewTarget.id : null;
@@ -1524,7 +1529,7 @@ export default function App() {
                   setShowAddExperienceModal(false); 
                   showNotification("Değerlendirme kaydedildi! 🎉"); 
                   setAuthError('');
-                }}><Text style={styles.payBtnText}>GÖNDER</Text></TouchableOpacity>
+                }}><Text style={styles.payBtnText}>GÖNDER</Text></AnimatedPressable>
               </View>
             </View>
           </KeyboardAvoidingView>
@@ -1532,19 +1537,19 @@ export default function App() {
       <View style={styles.navBar}>
         {userRole === 'admin' ? (
           <>
-            <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('map')}><Ionicons name="map" size={20} color={activeTab === 'map' ? "#000" : "#ccc"} /><Text style={styles.navText}>KEŞFET</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('shops')}><Ionicons name="storefront" size={20} color={activeTab === 'shops' ? "#000" : "#ccc"} /><Text style={styles.navText}>MAĞAZALAR</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('appointments')}><Ionicons name="calendar" size={20} color={activeTab === 'appointments' ? "#000" : "#ccc"} /><Text style={styles.navText}>RANDEVULAR</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('admin_panel')}><Ionicons name="settings" size={20} color={activeTab === 'admin_panel' ? "#000" : "#ccc"} /><Text style={styles.navText}>SİSTEM</Text></TouchableOpacity>
+            <AnimatedPressable style={styles.navItem} onPress={() => setActiveTab('map')}><Ionicons name="map" size={20} color={activeTab === 'map' ? "#000" : "#ccc"} /><Text style={styles.navText}>KEŞFET</Text></AnimatedPressable>
+            <AnimatedPressable style={styles.navItem} onPress={() => setActiveTab('shops')}><Ionicons name="storefront" size={20} color={activeTab === 'shops' ? "#000" : "#ccc"} /><Text style={styles.navText}>MAĞAZALAR</Text></AnimatedPressable>
+            <AnimatedPressable style={styles.navItem} onPress={() => setActiveTab('appointments')}><Ionicons name="calendar" size={20} color={activeTab === 'appointments' ? "#000" : "#ccc"} /><Text style={styles.navText}>RANDEVULAR</Text></AnimatedPressable>
+            <AnimatedPressable style={styles.navItem} onPress={() => setActiveTab('admin_panel')}><Ionicons name="settings" size={20} color={activeTab === 'admin_panel' ? "#000" : "#ccc"} /><Text style={styles.navText}>SİSTEM</Text></AnimatedPressable>
           </>
         ) : userRole === 'owner' ? (
-          <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('owner_panel')}><Ionicons name="stats-chart" size={20} color={activeTab === 'owner_panel' ? "#000" : "#ccc"} /><Text style={styles.navText}>İŞLETME PANELİ</Text></TouchableOpacity>
+          <AnimatedPressable style={styles.navItem} onPress={() => setActiveTab('owner_panel')}><Ionicons name="stats-chart" size={20} color={activeTab === 'owner_panel' ? "#000" : "#ccc"} /><Text style={styles.navText}>İŞLETME PANELİ</Text></AnimatedPressable>
         ) : (
           <>
-            <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('map')}><Ionicons name="map" size={20} color={activeTab === 'map' ? "#000" : "#ccc"} /><Text style={styles.navText}>KEŞFET</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('shops')}><Ionicons name="storefront" size={20} color={activeTab === 'shops' ? "#000" : "#ccc"} /><Text style={styles.navText}>MAĞAZALAR</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('appointments')}><Ionicons name="calendar" size={20} color={activeTab === 'appointments' ? "#000" : "#ccc"} /><Text style={styles.navText}>RANDEVULAR</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.navItem} onPress={() => setActiveTab('profile')}><Ionicons name="person" size={20} color={activeTab === 'profile' ? "#000" : "#ccc"} /><Text style={styles.navText}>PROFİL</Text></TouchableOpacity>
+            <AnimatedPressable style={styles.navItem} onPress={() => setActiveTab('map')}><Ionicons name="map" size={20} color={activeTab === 'map' ? "#000" : "#ccc"} /><Text style={styles.navText}>KEŞFET</Text></AnimatedPressable>
+            <AnimatedPressable style={styles.navItem} onPress={() => setActiveTab('shops')}><Ionicons name="storefront" size={20} color={activeTab === 'shops' ? "#000" : "#ccc"} /><Text style={styles.navText}>MAĞAZALAR</Text></AnimatedPressable>
+            <AnimatedPressable style={styles.navItem} onPress={() => setActiveTab('appointments')}><Ionicons name="calendar" size={20} color={activeTab === 'appointments' ? "#000" : "#ccc"} /><Text style={styles.navText}>RANDEVULAR</Text></AnimatedPressable>
+            <AnimatedPressable style={styles.navItem} onPress={() => setActiveTab('profile')}><Ionicons name="person" size={20} color={activeTab === 'profile' ? "#000" : "#ccc"} /><Text style={styles.navText}>PROFİL</Text></AnimatedPressable>
           </>
         )}
       </View>
