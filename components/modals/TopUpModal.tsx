@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Modal, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
+import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
 
 interface TopUpModalProps {
   showTopUpModal: boolean;
@@ -61,10 +62,10 @@ export const TopUpModal: React.FC<TopUpModalProps> = ({
 };
 
 const styles = StyleSheet.create({
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: 30 },
-  paymentCard: { backgroundColor: '#fff', padding: 30, borderRadius: 20 },
-  modalTitle: { fontSize: 16, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
-  authInput: { borderBottomWidth: 2, borderColor: '#000', padding: 10, marginBottom: 20, width: '100%', color: '#000' },
-  payBtn: { backgroundColor: '#000', padding: 15, borderRadius: 10, alignItems: 'center' }, 
-  payBtnText: { color: '#fff', fontWeight: 'bold' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.8)', justifyContent: 'center', padding: spacing.xl },
+  paymentCard: { backgroundColor: colors.background, padding: spacing.xxl, borderRadius: radius.xl, ...shadows.lg },
+  modalTitle: { ...typography.h3, color: colors.primary, textAlign: 'center', marginBottom: spacing.xl },
+  authInput: { borderBottomWidth: 2, borderColor: colors.primary, padding: spacing.md, marginBottom: spacing.xl, width: '100%', color: colors.primary, ...typography.body },
+  payBtn: { backgroundColor: colors.primary, padding: spacing.lg, borderRadius: radius.md, alignItems: 'center', ...shadows.sm }, 
+  payBtnText: { color: colors.background, fontWeight: 'bold', ...typography.bodySmall },
 });

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '@/lib/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
+import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
 
 interface OwnerPanelScreenProps {
   ownerShopDb: any;
@@ -235,27 +236,27 @@ export const OwnerPanelScreen: React.FC<OwnerPanelScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  tabTitle: { fontSize: 24, fontWeight: '900', color: '#000', marginBottom: 20, letterSpacing: -1 },
-  logoutBtn: { backgroundColor: '#ffeeee', padding: 15, borderRadius: 12, alignItems: 'center', marginTop: 30, borderWidth: 1, borderColor: '#ffcccc' },
-  ownerTopHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, backgroundColor: '#f9f9f9', padding: 20, borderRadius: 15 },
-  ownerShopName: { fontSize: 20, fontWeight: '900' },
-  viewBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', padding: 8, borderRadius: 10, shadowColor: '#000', shadowOffset: {width:0, height:2}, shadowOpacity:0.1, shadowRadius:3, elevation:2 },
-  viewText: { marginLeft: 5, fontWeight: 'bold', fontSize: 12 },
-  promoPanel: { backgroundColor: '#000', padding: 20, borderRadius: 15, marginBottom: 20, shadowColor: '#000', shadowOffset: {width:0, height:4}, shadowOpacity:0.3, shadowRadius:6, elevation:5 },
-  panelTitle: { color: '#fff', fontWeight: 'bold', fontSize: 16, marginBottom: 5 },
-  timerText: { color: '#ffd32a', fontWeight: 'bold', fontSize: 14, textAlign: 'center', marginVertical: 10 },
-  promoDesc: { color: '#aaa', fontSize: 12, marginBottom: 15 },
-  startBtn: { backgroundColor: '#fff', padding: 12, borderRadius: 10, alignItems: 'center' },
-  startBtnText: { fontWeight: 'bold', color: '#000', fontSize: 12 },
-  ownerSectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
-  sectionTitle: { fontSize: 14, fontWeight: '800', color: '#666', marginVertical: 20, letterSpacing: 1 },
-  expPickerPlaceholder: { height: 100, backgroundColor: '#f9f9f9', borderRadius: 12, borderWidth: 1, borderColor: '#ddd', borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
-  payBtn: { backgroundColor: '#000', padding: 15, borderRadius: 12, alignItems: 'center', shadowColor: '#000', shadowOffset: {width:0, height:4}, shadowOpacity:0.2, shadowRadius:5, elevation:5 },
-  payBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
-  slot: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: '#f0f0f0', alignItems: 'center' },
-  selected: { backgroundColor: '#000' },
-  slotText: { fontWeight: 'bold', fontSize: 12 },
-  addManualText: { color: '#7d5fff', fontWeight: 'bold', fontSize: 12 },
-  ownerAppCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: 15, borderRadius: 12, marginBottom: 10, borderWidth: 1, borderColor: '#eee', shadowColor: '#000', shadowOffset: {width:0, height:2}, shadowOpacity:0.05, shadowRadius:3, elevation:2 },
+  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+  tabTitle: { ...typography.h2, color: colors.primary, marginBottom: spacing.xl, letterSpacing: -1 },
+  logoutBtn: { backgroundColor: '#ffeeee', padding: spacing.lg, borderRadius: radius.md, alignItems: 'center', marginTop: spacing.xxl, borderWidth: 1, borderColor: '#ffcccc' },
+  ownerTopHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xl, backgroundColor: colors.surface, padding: spacing.xl, borderRadius: radius.lg },
+  ownerShopName: { ...typography.h3, color: colors.primary },
+  viewBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.background, padding: spacing.sm, borderRadius: radius.sm, ...shadows.sm },
+  viewText: { marginLeft: spacing.xs, fontWeight: 'bold', ...typography.caption },
+  promoPanel: { backgroundColor: colors.primary, padding: spacing.xl, borderRadius: radius.lg, marginBottom: spacing.xl, ...shadows.md },
+  panelTitle: { color: colors.background, fontWeight: 'bold', ...typography.body, marginBottom: spacing.xs },
+  timerText: { color: colors.accent.yellow, fontWeight: 'bold', ...typography.bodySmall, textAlign: 'center', marginVertical: spacing.md },
+  promoDesc: { color: colors.text.muted, ...typography.caption, marginBottom: spacing.lg },
+  startBtn: { backgroundColor: colors.background, padding: spacing.md, borderRadius: radius.sm, alignItems: 'center' },
+  startBtnText: { fontWeight: 'bold', color: colors.primary, ...typography.caption },
+  ownerSectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.lg },
+  sectionTitle: { ...typography.bodySmall, fontWeight: '800', color: colors.text.muted, marginVertical: spacing.xl, letterSpacing: 1 },
+  expPickerPlaceholder: { height: 100, backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.border, borderStyle: 'dashed', justifyContent: 'center', alignItems: 'center', marginBottom: spacing.lg },
+  payBtn: { backgroundColor: colors.primary, padding: spacing.lg, borderRadius: radius.md, alignItems: 'center', ...shadows.md },
+  payBtnText: { color: colors.background, fontWeight: 'bold', ...typography.bodySmall },
+  slot: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.xl, backgroundColor: colors.border, alignItems: 'center' },
+  selected: { backgroundColor: colors.primary },
+  slotText: { fontWeight: 'bold', ...typography.caption },
+  addManualText: { color: colors.accent.purple, fontWeight: 'bold', ...typography.caption },
+  ownerAppCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: colors.background, padding: spacing.lg, borderRadius: radius.md, marginBottom: spacing.md, borderWidth: 1, borderColor: colors.border, ...shadows.sm },
 });

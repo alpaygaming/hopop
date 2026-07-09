@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, FlatList, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
+import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
 
 interface AppointmentsScreenProps {
   appointments: any[];
@@ -18,10 +19,10 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
 }) => {
   return (
     <View style={styles.tabPadding}>
-      <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+      <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xl}}>
         <Text style={styles.tabTitle}>AKTİF RANDEVULARIM</Text>
         <AnimatedPressable onPress={onRefresh}>
-          <Ionicons name="refresh" size={20} color="#000" />
+          <Ionicons name="refresh" size={24} color={colors.primary} />
         </AnimatedPressable>
       </View>
       <FlatList 
@@ -40,26 +41,30 @@ export const AppointmentsScreen: React.FC<AppointmentsScreenProps> = ({
                 </AnimatedPressable>
               )}
               {item.status === 'confirmed' && (
-                <Text style={{color:'#2ed573', fontWeight:'bold', marginRight:10, alignSelf:'center'}}>ONAYLI ✅</Text>
+                <Text style={{color: colors.accent.green, fontWeight:'bold', marginRight: spacing.md, alignSelf:'center'}}>ONAYLI ✅</Text>
               )}
-              <AnimatedPressable style={[styles.actionBtn, { backgroundColor: '#ff4757' }]} onPress={() => onCancel(item)}>
+              <AnimatedPressable style={[styles.actionBtn, { backgroundColor: colors.accent.red }]} onPress={() => onCancel(item)}>
                 <Text style={styles.actionBtnText}>İPTAL</Text>
               </AnimatedPressable>
             </View>
           </View>
         )} 
-        ListEmptyComponent={<Text style={{ color: '#aaa', textAlign: 'center', marginTop: 50 }}>Aktif randevunuz bulunmuyor.</Text>} 
+        ListEmptyComponent={<Text style={{ color: colors.text.muted, textAlign: 'center', marginTop: spacing.xxl, ...typography.body }}>Aktif randevunuz bulunmuyor.</Text>} 
       />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  tabPadding: { flex: 1, padding: 20 },
-  tabTitle: { fontSize: 24, fontWeight: '900', color: '#000', marginBottom: 20, letterSpacing: -1 },
-  appCard: { backgroundColor: '#fff', padding: 20, borderRadius: 16, marginBottom: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: '#eee', shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.05, shadowRadius: 3, elevation: 2 },
-  appShopName: { fontWeight: '900', fontSize: 16, color: '#000' },
-  appDate: { color: '#666', fontSize: 13, marginTop: 5 },
-  actionBtn: { backgroundColor: '#000', paddingHorizontal: 15, paddingVertical: 10, borderRadius: 12, marginLeft: 10 },
-  actionBtnText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
+  tabPadding: { flex: 1, padding: spacing.xl, backgroundColor: colors.background },
+  tabTitle: { ...typography.h2, color: colors.primary, letterSpacing: -1 },
+  appCard: { 
+    backgroundColor: colors.background, padding: spacing.xl, borderRadius: radius.lg, 
+    marginBottom: spacing.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', 
+    borderWidth: 1, borderColor: colors.border, ...shadows.sm 
+  },
+  appShopName: { ...typography.h3, color: colors.primary },
+  appDate: { color: colors.text.muted, ...typography.bodySmall, marginTop: spacing.xs },
+  actionBtn: { backgroundColor: colors.primary, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: radius.md, marginLeft: spacing.sm },
+  actionBtnText: { color: colors.background, ...typography.label },
 });

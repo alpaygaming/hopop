@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Image, ScrollView, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
+import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
 
 interface ProfileScreenProps {
   user: any;
@@ -26,46 +27,46 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 }) => {
   return (
     <ScrollView style={styles.tabPadding} contentContainerStyle={{ paddingBottom: 100 }} showsVerticalScrollIndicator={false}>
-      <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
-        <Text style={[styles.tabTitle, { color: 'black' }]}>PROFİLİM</Text>
+      <View style={{flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xl}}>
+        <Text style={[styles.tabTitle, { color: colors.primary }]}>PROFİLİM</Text>
         <AnimatedPressable onPress={onRefreshProfile}>
-          <Ionicons name="refresh" size={20} color="#000" />
+          <Ionicons name="refresh" size={24} color={colors.primary} />
         </AnimatedPressable>
       </View>
       <View style={styles.profileHeader}>
         <Image source={{ uri: user?.avatar }} style={styles.profileAvatar} />
         <View>
-          <Text style={{ fontSize: 18, fontWeight: 'bold' }}>{user?.name}</Text>
+          <Text style={{ ...typography.h3 }}>{user?.name}</Text>
           <Text style={styles.profileName}>@{user?.username}</Text>
-          <AnimatedPressable onPress={onEditProfile} style={{ marginTop: 5 }}>
-            <Text style={{ color: '#7d5fff', fontSize: 12, fontWeight: 'bold' }}>Profili Düzenle</Text>
+          <AnimatedPressable onPress={onEditProfile} style={{ marginTop: spacing.xs }}>
+            <Text style={{ color: colors.accent.purple, ...typography.caption, fontWeight: 'bold' }}>Profili Düzenle</Text>
           </AnimatedPressable>
         </View>
       </View>
       <View style={styles.walletCard}>
-        <Text style={{ color: '#fff', fontWeight: 'bold' }}>Bakiyem: ₺{user?.balance}</Text>
+        <Text style={{ color: colors.background, fontWeight: 'bold', ...typography.body }}>Bakiyem: ₺{user?.balance}</Text>
         <AnimatedPressable style={styles.topUpBtn} onPress={onTopUp}>
-          <Text style={{ fontWeight: 'bold', fontSize: 12 }}>Bakiye Yükle</Text>
+          <Text style={{ fontWeight: 'bold', ...typography.caption, color: colors.primary }}>Bakiye Yükle</Text>
         </AnimatedPressable>
       </View>
       
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, marginTop: 15 }}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md, marginTop: spacing.md }}>
         <Text style={[styles.sectionTitle, { marginVertical: 0 }]}>GEÇMİŞ RANDEVULARIM</Text>
       </View>
-      {appointments.filter(a => a.status === 'past' || a.status === 'confirmed').length === 0 && <Text style={{ color: '#aaa', marginBottom: 20 }}>Değerlendirilecek randevu yok.</Text>}
+      {appointments.filter(a => a.status === 'past' || a.status === 'confirmed').length === 0 && <Text style={{ color: colors.text.muted, marginBottom: spacing.xl }}>Değerlendirilecek randevu yok.</Text>}
       {appointments.filter(a => a.status === 'past' || a.status === 'confirmed').map(app => {
         const isReviewed = userExperiences.some(exp => exp.appointmentId === app.id);
         return (
-          <View key={app.id} style={{ backgroundColor: '#f9f9f9', padding: 15, borderRadius: 12, marginBottom: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View key={app.id} style={{ backgroundColor: colors.surface, padding: spacing.lg, borderRadius: radius.md, marginBottom: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
             <View>
-              <Text style={{ fontWeight: 'bold' }}>{app.barberName}</Text>
-              <Text style={{ color: '#666', fontSize: 12 }}>{app.date} • {app.time}</Text>
+              <Text style={{ fontWeight: 'bold', ...typography.body }}>{app.barberName}</Text>
+              <Text style={{ color: colors.text.muted, ...typography.caption }}>{app.date} • {app.time}</Text>
             </View>
             {isReviewed ? (
-              <Text style={{ color: '#2ed573', fontSize: 10, fontWeight: 'bold' }}>DEĞERLENDİRİLDİ</Text>
+              <Text style={{ color: colors.accent.green, ...typography.label, fontWeight: 'bold' }}>DEĞERLENDİRİLDİ</Text>
             ) : (
-              <AnimatedPressable style={{ backgroundColor: '#000', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }} onPress={() => onAddReview(app)}>
-                <Text style={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }}>DEĞERLENDİR</Text>
+              <AnimatedPressable style={{ backgroundColor: colors.primary, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.sm }} onPress={() => onAddReview(app)}>
+                <Text style={{ color: colors.background, ...typography.label, fontWeight: 'bold' }}>DEĞERLENDİR</Text>
               </AnimatedPressable>
             )}
           </View>
@@ -94,17 +95,17 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
-  tabPadding: { flex: 1, padding: 20 },
-  tabTitle: { fontSize: 24, fontWeight: '900', color: '#000', marginBottom: 20, letterSpacing: -1 },
-  sectionTitle: { fontSize: 14, fontWeight: '800', color: '#666', marginVertical: 20, letterSpacing: 1 },
-  profileHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 20, backgroundColor: '#f9f9f9', padding: 15, borderRadius: 16 },
-  profileAvatar: { width: 70, height: 70, borderRadius: 35, marginRight: 20, borderWidth: 2, borderColor: '#eee' },
-  profileName: { color: '#666', fontSize: 14 },
-  walletCard: { backgroundColor: '#000', padding: 20, borderRadius: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, shadowColor: '#000', shadowOffset: {width:0, height:4}, shadowOpacity:0.2, shadowRadius:5, elevation:5 },
-  topUpBtn: { backgroundColor: '#fff', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20 },
-  expCard: { width: 220, backgroundColor: '#fff', marginRight: 15, padding: 15, borderRadius: 16, borderWidth: 1, borderColor: '#eee', shadowColor: '#000', shadowOffset: {width: 0, height: 2}, shadowOpacity: 0.05, shadowRadius: 3, elevation: 2 },
-  expImg: { width: '100%', height: 120, borderRadius: 8, backgroundColor: '#f9f9f9' },
-  expText: { color: '#666', fontSize: 12, marginTop: 5, lineHeight: 18 },
-  logoutBtn: { backgroundColor: '#ffeeee', padding: 15, borderRadius: 12, alignItems: 'center', marginTop: 30, borderWidth: 1, borderColor: '#ffcccc' },
-  ownerSectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
+  tabPadding: { flex: 1, padding: spacing.xl, backgroundColor: colors.background },
+  tabTitle: { ...typography.h2, color: colors.primary, marginBottom: spacing.xl, letterSpacing: -1 },
+  sectionTitle: { ...typography.bodySmall, fontWeight: '800', color: colors.text.muted, marginVertical: spacing.xl, letterSpacing: 1 },
+  profileHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.xl, backgroundColor: colors.surface, padding: spacing.lg, borderRadius: radius.lg },
+  profileAvatar: { width: 70, height: 70, borderRadius: 35, marginRight: spacing.xl, borderWidth: 2, borderColor: colors.border },
+  profileName: { color: colors.text.muted, ...typography.bodySmall },
+  walletCard: { backgroundColor: colors.primary, padding: spacing.xl, borderRadius: radius.lg, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xl, ...shadows.md },
+  topUpBtn: { backgroundColor: colors.background, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radius.xl },
+  expCard: { width: 220, backgroundColor: colors.background, marginRight: spacing.lg, padding: spacing.lg, borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, ...shadows.sm },
+  expImg: { width: '100%', height: 120, borderRadius: radius.sm, backgroundColor: colors.surface },
+  expText: { color: colors.text.muted, ...typography.caption, marginTop: spacing.xs, lineHeight: 18 },
+  logoutBtn: { backgroundColor: '#ffeeee', padding: spacing.lg, borderRadius: radius.md, alignItems: 'center', marginTop: spacing.xxl, borderWidth: 1, borderColor: '#ffcccc' },
+  ownerSectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.sm },
 });

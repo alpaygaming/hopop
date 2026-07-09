@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Modal, ScrollView, Image, TouchableOpacity, Dimensions, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
+import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
 
 interface BarberDetailModalProps {
   selectedBarber: any;
@@ -91,21 +92,21 @@ export const BarberDetailModal: React.FC<BarberDetailModalProps> = ({
             <Text style={styles.payBtnText}>RANDEVU AL VE ÖDEMEYE GEÇ (₺350)</Text>
           </AnimatedPressable>
 
-          <Text style={[styles.sectionTitle, { marginTop: 20 }]}>MÜŞTERİ DENEYİMLERİ</Text>
-          {(globalReviews[selectedBarber.id] || []).length === 0 ? <Text style={{color:'#aaa', marginBottom: 20}}>Henüz değerlendirme yok.</Text> : (
-            <View style={{ marginBottom: 20 }}>
+          <Text style={[styles.sectionTitle, { marginTop: spacing.xl }]}>MÜŞTERİ DENEYİMLERİ</Text>
+          {(globalReviews[selectedBarber.id] || []).length === 0 ? <Text style={{color: colors.text.muted, marginBottom: spacing.xl, ...typography.body}}>Henüz değerlendirme yok.</Text> : (
+            <View style={{ marginBottom: spacing.xl }}>
               {(globalReviews[selectedBarber.id] || []).map((r: any) => (
-                <View key={r.id} style={{ backgroundColor: '#f9f9f9', padding: 15, borderRadius: 12, marginBottom: 10 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-                    <Image source={{ uri: r.userAvatar || 'https://i.pravatar.cc/150' }} style={{ width: 30, height: 30, borderRadius: 15, marginRight: 10 }} />
+                <View key={r.id} style={{ backgroundColor: colors.surface, padding: spacing.lg, borderRadius: radius.md, marginBottom: spacing.md, ...shadows.sm }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md }}>
+                    <Image source={{ uri: r.userAvatar || 'https://i.pravatar.cc/150' }} style={{ width: 30, height: 30, borderRadius: 15, marginRight: spacing.sm }} />
                     <View>
-                      <Text style={{ fontWeight: 'bold' }}>{r.user}</Text>
-                      <Text style={{ color: '#aaa', fontSize: 10 }}>{r.date}</Text>
+                      <Text style={{ fontWeight: 'bold', ...typography.bodySmall }}>{r.user}</Text>
+                      <Text style={{ color: colors.text.muted, ...typography.caption }}>{r.date}</Text>
                     </View>
-                    <Text style={{ marginLeft: 'auto', color: '#f39c12' }}>{'⭐'.repeat(r.star)}</Text>
+                    <Text style={{ marginLeft: 'auto', color: colors.accent.yellow }}>{'⭐'.repeat(r.star)}</Text>
                   </View>
-                  <Text style={{ color: '#333' }}>{r.comment}</Text>
-                  {r.imageUrl && <Image source={{uri: r.imageUrl}} style={{width: '100%', height: 200, resizeMode: 'contain', borderRadius: 10, marginTop: 10}} />}
+                  <Text style={{ color: colors.text.primary, ...typography.body }}>{r.comment}</Text>
+                  {r.imageUrl && <Image source={{uri: r.imageUrl}} style={{width: '100%', height: 200, resizeMode: 'contain', borderRadius: radius.md, marginTop: spacing.md}} />}
                 </View>
               ))}
             </View>
@@ -118,14 +119,14 @@ export const BarberDetailModal: React.FC<BarberDetailModalProps> = ({
 
 const styles = StyleSheet.create({
   closeBtn: { position: 'absolute', top: 50, right: 20, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 20, padding: 8 },
-  detailName: { fontSize: 26, fontWeight: 'bold', marginBottom: 20 }, 
-  sectionTitle: { fontSize: 11, fontWeight: 'bold', color: '#aaa', marginVertical: 15, letterSpacing: 1 },
-  categoryBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  detailRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, backgroundColor: '#f9f9f9', padding: 12, borderRadius: 10 },
-  detailRowText: { marginLeft: 10, fontSize: 14, color: '#333', flex: 1 },
-  slot: { padding: 15, borderWidth: 1, borderColor: '#eee', borderRadius: 12, marginRight: 10, minWidth: 80, alignItems: 'center' },
-  selected: { backgroundColor: '#000' }, 
-  slotText: { fontWeight: 'bold' },
-  payBtn: { backgroundColor: '#000', padding: 18, borderRadius: 12, marginTop: 30, alignItems: 'center' }, 
-  payBtnText: { color: '#fff', fontWeight: 'bold' },
+  detailName: { ...typography.h1, color: colors.primary, marginBottom: spacing.xl }, 
+  sectionTitle: { ...typography.caption, fontWeight: 'bold', color: colors.text.muted, marginVertical: spacing.lg, letterSpacing: 1 },
+  categoryBadge: { paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: radius.sm },
+  detailRow: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md, backgroundColor: colors.surface, padding: spacing.md, borderRadius: radius.md },
+  detailRowText: { marginLeft: spacing.sm, ...typography.body, color: colors.text.primary, flex: 1 },
+  slot: { padding: spacing.lg, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, marginRight: spacing.md, minWidth: 80, alignItems: 'center' },
+  selected: { backgroundColor: colors.primary }, 
+  slotText: { fontWeight: 'bold', ...typography.bodySmall },
+  payBtn: { backgroundColor: colors.primary, padding: spacing.xl, borderRadius: radius.lg, marginTop: spacing.xxl, alignItems: 'center', ...shadows.md }, 
+  payBtnText: { color: colors.background, fontWeight: 'bold', ...typography.bodySmall },
 });

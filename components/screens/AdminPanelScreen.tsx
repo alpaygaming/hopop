@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, TextInput, StyleSheet } from 
 import { Ionicons } from '@expo/vector-icons';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
 import AdminMap from '@/components/AdminMap';
+import { colors, typography, spacing, radius, shadows } from '@/constants/theme';
 
 interface AdminPanelScreenProps {
   promoRequests: any[];
@@ -130,13 +131,13 @@ export const AdminPanelScreen: React.FC<AdminPanelScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
-  tabPadding: { flex: 1, padding: 20 },
-  tabTitle: { fontSize: 24, fontWeight: '900', color: '#000', marginBottom: 20, letterSpacing: -1 },
-  promoPanel: { backgroundColor: '#000', padding: 20, borderRadius: 15, marginBottom: 20, shadowColor: '#000', shadowOffset: {width:0, height:4}, shadowOpacity:0.3, shadowRadius:6, elevation:5 },
-  panelTitle: { color: '#fff', fontWeight: 'bold', fontSize: 16, marginBottom: 15 },
-  sectionTitle: { fontSize: 14, fontWeight: '800', color: '#666', marginVertical: 20, letterSpacing: 1 },
-  authInput: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', padding: 15, borderRadius: 12, marginBottom: 15, fontSize: 16, color: '#000' },
-  authPrimaryBtn: { backgroundColor: '#000', padding: 16, borderRadius: 12, alignItems: 'center', marginTop: 10 },
-  authPrimaryBtnText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
-  logoutBtn: { backgroundColor: '#ffeeee', padding: 15, borderRadius: 12, alignItems: 'center', marginTop: 30, borderWidth: 1, borderColor: '#ffcccc' },
+  tabPadding: { flex: 1, padding: spacing.xl, backgroundColor: colors.background },
+  tabTitle: { ...typography.h2, color: colors.primary, marginBottom: spacing.xl, letterSpacing: -1 },
+  promoPanel: { backgroundColor: colors.primary, padding: spacing.xl, borderRadius: radius.lg, marginBottom: spacing.xl, ...shadows.md },
+  panelTitle: { color: colors.background, fontWeight: 'bold', ...typography.body, marginBottom: spacing.lg },
+  sectionTitle: { ...typography.bodySmall, fontWeight: '800', color: colors.text.muted, marginVertical: spacing.xl, letterSpacing: 1 },
+  authInput: { backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, borderRadius: radius.md, marginBottom: spacing.lg, ...typography.body, color: colors.primary },
+  authPrimaryBtn: { backgroundColor: colors.primary, padding: spacing.lg, borderRadius: radius.md, alignItems: 'center', marginTop: spacing.sm, ...shadows.sm },
+  authPrimaryBtnText: { color: colors.background, ...typography.body, fontWeight: 'bold' },
+  logoutBtn: { backgroundColor: '#ffeeee', padding: spacing.lg, borderRadius: radius.md, alignItems: 'center', marginTop: spacing.xxl, borderWidth: 1, borderColor: '#ffcccc' },
 });
