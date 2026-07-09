@@ -8,6 +8,9 @@ import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
 import { AnimatedPressable } from '@/components/ui/AnimatedPressable';
+import { LoginScreen } from '@/components/screens/LoginScreen';
+import { RegisterScreen } from '@/components/screens/RegisterScreen';
+import { UserRole } from '@/types';
 
 // --- OVERPASS API (OpenStreetMap) ---
 const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -670,19 +673,19 @@ export default function App() {
     }
   };
 
-  const handleRegister = async () => {
+  const handleRegister = async (regRoleParam: UserRole, regNameParam: string, regUsernameParam: string, regEmailParam: string, regPasswordParam: string, regShopNameParam: string) => {
     try {
       setAuthError('');
-      if (!regName.trim() || !regUsername.trim() || !regEmail.trim() || !regPassword.trim()) { setAuthError("Lütfen tüm alanları doldurun."); return; }
-      if (regRole === 'owner' && !regShopName.trim()) { setAuthError("İşletme adı zorunludur."); return; }
-      if (regPassword.length < 6) { setAuthError("Şifre en az 6 karakter olmalıdır."); return; }
+      if (!regNameParam.trim() || !regUsernameParam.trim() || !regEmailParam.trim() || !regPasswordParam.trim()) { setAuthError("Lütfen tüm alanları doldurun."); return; }
+      if (regRoleParam === 'owner' && !regShopNameParam.trim()) { setAuthError("İşletme adı zorunludur."); return; }
+      if (regPasswordParam.length < 6) { setAuthError("Şifre en az 6 karakter olmalıdır."); return; }
       
-      const { data: existingProfile, error: existError } = await supabase.from('profiles').select('id').eq('username', regUsername).maybeSingle();
+      const { data: existingProfile, error: existError } = await supabase.from('profiles').select('id').eq('username', regUsernameParam).maybeSingle();
       if (existingProfile) { setAuthError("Bu kullanıcı adı zaten alınmış."); return; }
 
       const { data, error } = await supabase.auth.signUp({
-        email: regEmail,
-        password: regPassword,
+        email: regEmailParam,
+        password: regPasswordParam,
       });
 
       if (error) {
@@ -692,16 +695,15 @@ export default function App() {
 
       if (data.user) {
         await supabase.from('profiles').update({ 
-          full_name: regName,
-          username: regUsername,
-          email: regEmail,
-          role: 'customer'
+          full_name: regNameParam,
+          username: regUsernameParam,
+          email: regEmailParam,
+          role: regRoleParam
         }).eq('id', data.user.id);
       }
 
-      setLoginUsername(regUsername);
-      setLoginPassword(regPassword);
-      setRegName(''); setRegUsername(''); setRegPassword(''); setRegShopName(''); setRegEmail('');
+      setLoginUsername(regUsernameParam);
+      setLoginPassword(regPasswordParam);
       setAuthState('login');
       alert("Kayıt başarılı! Giriş yapabilirsiniz.");
     } catch (err: any) {
@@ -825,61 +827,21 @@ export default function App() {
 
   if (authState === 'login') {
     return (
-      <View style={styles.authContainer} onStartShouldSetResponder={() => { Keyboard.dismiss(); return false; }}>
-          <Text style={styles.welcomeTitle}>Hopop</Text>
-          <Text style={styles.authSubtitle}>Randevuna bir adım kaldı</Text>
-          {authError ? <Text style={{ color: 'red', marginBottom: 10, textAlign: 'center' }}>{authError}</Text> : null}
-          <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Kullanıcı Adı" value={loginUsername} onChangeText={setLoginUsername} autoCapitalize="none" />
-          <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Şifre" value={loginPassword} onChangeText={setLoginPassword} secureTextEntry />
-            <AnimatedPressable style={styles.authPrimaryBtn} onPress={() => handleLogin()}>
-            <Text style={styles.authPrimaryBtnText}>GİRİŞ YAP</Text>
-          </AnimatedPressable>
-            
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 15, justifyContent: 'center' }}>
-              <TouchableOpacity onPress={() => setRememberMe(!rememberMe)} style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <Ionicons name={rememberMe ? "checkbox" : "square-outline"} size={20} color="#000" />
-                <Text style={{ marginLeft: 8, color: '#555' }}>Beni Hatırla</Text>
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity style={{marginTop: 20}} onPress={() => setAuthState('register')}>
-            <Text style={styles.registerLink}>Hesabınız yok mu? <Text style={styles.registerLinkHighlight}>Hemen Kayıt Ol</Text></Text>
-          </TouchableOpacity>
-        </View>
+      <LoginScreen
+        onLogin={handleLogin}
+        onNavigateRegister={() => setAuthState('register')}
+        authError={authError}
+      />
     );
   }
 
   if (authState === 'register') {
     return (
-        <ScrollView contentContainerStyle={styles.authContainer} keyboardShouldPersistTaps="handled">
-          <Text style={styles.welcomeTitle}>Hopop</Text>
-          <Text style={styles.authSubtitle}>Yeni Hesap Oluştur</Text>
-
-          <View style={styles.roleSelector}>
-            <TouchableOpacity style={[styles.roleBtn, regRole === 'customer' && styles.roleBtnActive]} onPress={() => setRegRole('customer')}>
-              <Ionicons name="person" size={20} color={regRole === 'customer' ? '#fff' : '#000'} />
-              <Text style={[styles.roleBtnText, regRole === 'customer' && styles.roleBtnTextActive]}>Müşteri</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.roleBtn, regRole === 'owner' && styles.roleBtnActive]} onPress={() => setRegRole('owner')}>
-              <Ionicons name="storefront" size={20} color={regRole === 'owner' ? '#fff' : '#000'} />
-              <Text style={[styles.roleBtnText, regRole === 'owner' && styles.roleBtnTextActive]}>İşletme</Text>
-            </TouchableOpacity>
-          </View>
-
-          {authError ? <Text style={{ color: 'red', marginBottom: 10, textAlign: 'center' }}>{authError}</Text> : null}
-          <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Ad Soyad" value={regName} onChangeText={setRegName} />
-          <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Kullanıcı Adı" value={regUsername} onChangeText={setRegUsername} autoCapitalize="none" />
-          <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="E-posta Adresi" value={regEmail} onChangeText={setRegEmail} autoCapitalize="none" keyboardType="email-address" />
-          <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="Şifre (en az 6 karakter)" value={regPassword} onChangeText={setRegPassword} secureTextEntry />
-          {regRole === 'owner' && <TextInput style={styles.authInput} placeholderTextColor="#555" placeholder="İşletme / Dükkan Adı" value={regShopName} onChangeText={setRegShopName} />}
-
-          <AnimatedPressable style={styles.authPrimaryBtn} onPress={handleRegister}>
-            <Text style={styles.authPrimaryBtnText}>KAYIT OL</Text>
-          </AnimatedPressable>
-          <TouchableOpacity style={{marginTop: 20}} onPress={() => setAuthState('login')}>
-            <Text style={styles.registerLink}>Zaten hesabınız var mı? <Text style={styles.registerLinkHighlight}>Giriş Yap</Text></Text>
-          </TouchableOpacity>
-        </ScrollView>
+      <RegisterScreen
+        onRegister={handleRegister}
+        onNavigateLogin={() => setAuthState('login')}
+        authError={authError}
+      />
     );
   }
 
