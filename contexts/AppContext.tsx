@@ -102,6 +102,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const refreshGlobalReviews = async () => {
     try {
+      const { data: shopsData } = await supabase.from('shops').select('*');
+      if (shopsData) setSystemShops(shopsData);
+
       const { data, error } = await supabase.from('reviews').select('*, profiles(full_name, avatar_url), shops(name)');
       if (!error && data) {
         const newGlobalReviews: Record<string, any[]> = {};
@@ -130,12 +133,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const refreshAppointments = async () => {
-     // Fetch logic mapped over from index.tsx
+    if (!user?.id) return;
+    try {
+      const { data, error } = await supabase.from('appointments').select('*, shops(name)').eq('user_id', user.id).order('created_at', { ascending: false });
+      if (!error && data) {
+        setAppointments(data);
+      }
+    } catch (e) {}
   };
 
   useEffect(() => {
     refreshGlobalReviews();
-  }, []);
+    refreshAppointments();
+  }, [user?.id]);
 
   // Realtime Subscriptions
   useEffect(() => {

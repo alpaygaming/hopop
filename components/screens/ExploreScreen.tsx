@@ -17,8 +17,19 @@ export const ExploreScreen: React.FC = () => {
   const {
     selectedCategory, setSelectedCategory,
     location, dynamicBarbers, setSelectedBarber,
-    mapLoading, setDynamicBarbers
+    mapLoading, setDynamicBarbers, systemShops
   } = useApp();
+
+  React.useEffect(() => {
+    if (selectedCategory) {
+      if (selectedCategory === 'all') {
+        setDynamicBarbers(systemShops);
+      } else {
+        setDynamicBarbers(systemShops.filter((s: any) => s.type === selectedCategory));
+      }
+    }
+  }, [selectedCategory, systemShops]);
+
   if (!selectedCategory) {
     return (
       <View style={styles.categoryScreen}>
